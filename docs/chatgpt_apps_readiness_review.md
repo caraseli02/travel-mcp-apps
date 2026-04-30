@@ -6,7 +6,7 @@ Date: 2026-04-29
 
 Primary archetype: `submission-ready`, eventually.
 
-Current stage: MCP foundation with Apps-aware resources for weather, packing, and travel tips.
+Current stage: MCP foundation with Apps-aware resources for weather, packing, travel tips, Trip Inbox, and Trip Board.
 
 The repo now has local Streamable HTTP MCP servers, working tool descriptors, and a first weather widget resource. It is not yet a fully validated ChatGPT app because widget bridge behavior still needs to be tested in a runtime that provides `window.openai` or the MCP Apps bridge.
 
@@ -16,13 +16,13 @@ The repo now has local Streamable HTTP MCP servers, working tool descriptors, an
 - `pyproject.toml` has the FastAPI Cloud entrypoint: `app.main:app`.
 - Dependencies include `mcp`, `aiohttp`, `pydantic-settings`, and `fastapi[standard]`.
 - Runtime config is environment-based and keeps `OPENWEATHER_API_KEY` out of source.
-- Health and placeholder travel endpoints exist.
+- Health, placeholder travel API endpoints, and the unified `/mcp/travel-agent/` MCP endpoint exist.
 - Tests exist and pass.
 - The learning roadmap keeps MCP implementation as your work, with hints and references.
 
 ## Current Gaps Before A ChatGPT App Can Work End-To-End
 
-- Weather, packing, and travel tips now have first-pass Apps-aware UI resources.
+- Weather, packing, travel tips, Trip Inbox, and Trip Board now have first-pass Apps-aware UI resources.
 - The local preview used during development does not provide `window.openai`, so it can load the HTML but cannot prove widget data binding.
 - ChatGPT Developer Mode or a bridge-aware Apps inspector is still needed for true widget runtime validation.
 - Production widget resource metadata still needs the final `_meta.ui.domain` once the FastAPI Cloud domain is known.
@@ -49,7 +49,12 @@ Each user intent should map to one tool. For this app, start with:
 - `get_destination_tips`
 - `recommend_activities`
 - `generate_packing_list`
-- Later: render-focused tools if you choose a decoupled data/render pattern.
+- `create_trip`
+- `add_trip_item`
+- `list_trip_inbox`
+- `update_trip_item_status`
+- `get_trip_board`
+- `get_trip_summary`
 
 Each tool should have:
 
@@ -99,6 +104,8 @@ ui://weather/forecast-chart-v1.html
 ui://packing/checklist-v1.html
 ui://travel/destination-guide-v1.html
 ui://travel/activity-cards-v1.html
+ui://trip/inbox-v1.html
+ui://trip/board-v1.html
 ```
 
 When a widget changes incompatibly, publish a new URI instead of reusing the old one.
@@ -118,27 +125,27 @@ Developer Mode is the correct target first. Public submission should happen only
 Commands:
 
 ```bash
-.venv/bin/python -m pytest -q
+python -m pytest
 ```
 
 Result:
 
 ```text
-14 passed
+37 passed, 1 skipped
 ```
 
 Static review:
 
 - FastAPI app exists and has a FastAPI Cloud entrypoint.
-- Weather, travel tips, and packing MCP servers exist.
+- Weather, travel tips, packing, and unified travel-agent MCP servers exist.
 - Weather `get_current_weather` advertises `ui://weather/dashboard-v4.html`.
 - Weather `get_current_weather` returns real top-level `structuredContent`, not JSON text.
-- The weather UI resource is readable and carries `text/html;profile=mcp-app`.
+- The weather, travel, packing, trip inbox, and trip board UI resources are readable and carry `text/html;profile=mcp-app`.
 - Kiro docs and roadmap were updated away from stale `text/html+mcp` MIME wording.
 
 ## Next Correct Step
 
-The local Developer Mode path has validated the core widget pattern across
-weather, packing, and travel tips. Next, decide how production hosting will
-expose MCP endpoints, then set final widget domain metadata once the public
-domain is known.
+The local automated tests validate the core widget pattern across weather,
+packing, travel tips, Trip Inbox, and Trip Board. Next, deploy the unified
+`/mcp/travel-agent/` endpoint with `DATABASE_URL`, then test the full ChatGPT
+Developer Mode flow against the public HTTPS domain.
