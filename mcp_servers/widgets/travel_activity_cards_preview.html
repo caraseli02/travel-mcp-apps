@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Activity Cards Preview</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #ffffff;
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(820px, 100%);
+        margin: 0 auto;
+      }
+
+      iframe {
+        display: block;
+        width: 100%;
+        height: 520px;
+        border: 0;
+        background: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <iframe
+        id="widget"
+        title="Activity cards widget preview"
+        src="travel_activity_cards_v1.html"
+      ></iframe>
+    </main>
+
+    <script>
+      const mockActivities = {
+        city: "London",
+        weather: "rain",
+        season: "spring",
+        activities: [
+          {
+            id: "british-museum",
+            name: "British Museum",
+            category: "museum",
+            description: "Large collection of global history and culture with free entry.",
+            duration_hours: 3,
+            cost_usd: 0,
+            weather_dependent: false,
+            best_weather: ["rain", "cold", "cloudy"],
+          },
+          {
+            id: "broadway-show",
+            name: "West End Theatre",
+            category: "nightlife",
+            description: "A comfortable evening plan when outdoor conditions are poor.",
+            duration_hours: 3,
+            cost_usd: 90,
+            weather_dependent: false,
+            best_weather: ["any"],
+          },
+        ],
+      };
+
+      const iframe = document.getElementById("widget");
+      iframe.addEventListener("load", () => {
+        iframe.contentWindow.openai = { toolOutput: mockActivities };
+        iframe.contentWindow.dispatchEvent(
+          new CustomEvent("openai:set_globals", {
+            detail: { globals: { toolOutput: mockActivities } },
+          })
+        );
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #111b20;
+        --muted: #637177;
+        --paper: #fffaf0;
+        --paper-soft: rgba(255, 253, 247, 0.7);
+        --green: #345e48;
+        --sun: #e3a72d;
+        --sky: #7bb0c1;
+        --rain: #416f93;
+        --line: rgba(17, 27, 32, 0.09);
+        --danger: #923232;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 280px;
+        color: var(--ink);
+        background:
+          linear-gradient(rgba(17, 27, 32, 0.025) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(17, 27, 32, 0.025) 1px, transparent 1px),
+          linear-gradient(145deg, rgba(255, 250, 240, 0.96), rgba(241, 247, 244, 0.82));
+        background-size: 28px 28px, 28px 28px, auto;
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .forecast {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        min-height: 360px;
+        padding: 18px;
+      }
+
+      .forecast::after {
+        content: "";
+        position: absolute;
+        right: -64px;
+        top: -78px;
+        z-index: -1;
+        width: 190px;
+        height: 190px;
+        border-radius: 50%;
+        background:
+          radial-gradient(circle at 42% 40%, rgba(227, 167, 45, 0.66), transparent 34%),
+          radial-gradient(circle, rgba(227, 167, 45, 0.18), transparent 66%);
+      }
+
+      .empty,
+      .error {
+        display: grid;
+        min-height: 300px;
+        place-items: center;
+        padding: 34px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+        text-align: center;
+      }
+
+      .empty::before {
+        content: "";
+        display: block;
+        width: 44px;
+        height: 44px;
+        margin: 0 auto 14px;
+        border-radius: 50%;
+        background: conic-gradient(var(--sun), rgba(227, 167, 45, 0.08));
+        animation: spin 1.2s linear infinite;
+      }
+
+      .error {
+        color: var(--danger);
+      }
+
+      .content {
+        display: grid;
+        gap: 14px;
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: start;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin: 0 0 8px;
+        color: var(--green);
+        font-size: 11px;
+        font-weight: 820;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--sun);
+        box-shadow: 12px 0 0 var(--sky);
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 12ch;
+        font-family: ui-serif, Georgia, "Times New Roman", serif;
+        font-size: clamp(32px, 7vw, 48px);
+        font-weight: 680;
+        line-height: 0.95;
+        letter-spacing: 0;
+      }
+
+      .summary {
+        align-self: start;
+        max-width: 168px;
+        color: #39474d;
+        font-family: ui-serif, Georgia, "Times New Roman", serif;
+        font-size: 16px;
+        line-height: 1.28;
+        text-align: right;
+      }
+
+      .range {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 8px;
+      }
+
+      .day {
+        display: grid;
+        grid-template-columns: 66px minmax(92px, 1fr) minmax(96px, 1.4fr) 56px;
+        gap: 10px;
+        align-items: center;
+        min-height: 58px;
+        padding: 10px 0;
+      }
+
+      .day + .day {
+        box-shadow: 0 -1px 0 var(--line);
+      }
+
+      .date {
+        min-width: 0;
+      }
+
+      .dow {
+        display: block;
+        font-size: 13px;
+        font-weight: 820;
+      }
+
+      .month {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .condition {
+        display: grid;
+        grid-template-columns: 34px minmax(0, 1fr);
+        gap: 8px;
+        align-items: center;
+        min-width: 0;
+      }
+
+      .mark {
+        position: relative;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--sun);
+      }
+
+      .mark::before,
+      .mark::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+      }
+
+      .mark::before {
+        left: 11px;
+        top: 18px;
+        width: 31px;
+        height: 11px;
+        background: var(--paper);
+      }
+
+      .mark::after {
+        left: 5px;
+        top: 14px;
+        width: 20px;
+        height: 13px;
+        background: var(--paper);
+      }
+
+      .day[data-kind="rain"] .mark {
+        background: var(--rain);
+      }
+
+      .day[data-kind="cloud"] .mark,
+      .day[data-kind="fog"] .mark {
+        background: var(--sky);
+      }
+
+      .day[data-kind="storm"] .mark {
+        background: #424d55;
+      }
+
+      .day[data-kind="snow"] .mark {
+        background: #dbe8eb;
+      }
+
+      .condition-text {
+        overflow: hidden;
+        font-size: 13px;
+        font-weight: 760;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .bar-wrap {
+        min-width: 0;
+      }
+
+      .temps {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .low {
+        color: var(--muted);
+      }
+
+      .high {
+        color: var(--ink);
+      }
+
+      .track {
+        height: 8px;
+        overflow: hidden;
+        background: rgba(17, 27, 32, 0.08);
+      }
+
+      .bar {
+        height: 100%;
+        width: var(--bar-width);
+        margin-left: var(--bar-left);
+        background: linear-gradient(90deg, var(--sky), var(--sun));
+      }
+
+      .rain {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 760;
+        text-align: right;
+      }
+
+      .rain strong {
+        display: block;
+        color: var(--ink);
+        font-size: 17px;
+        line-height: 1;
+      }
+
+      .footer {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .stat {
+        min-width: 0;
+        padding: 10px 0;
+        box-shadow: 0 -1px 0 var(--line);
+      }
+
+      .stat-label {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 760;
+        text-transform: uppercase;
+      }
+
+      .stat-value {
+        display: block;
+        margin-top: 5px;
+        overflow-wrap: anywhere;
+        font-size: 18px;
+        font-weight: 840;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .empty::before {
+          animation: none;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .forecast {
+          min-height: 0;
+          padding: 14px;
+        }
+
+        .header {
+          grid-template-columns: 1fr;
+        }
+
+        .summary {
+          max-width: none;
+          text-align: left;
+        }
+
+        .day {
+          grid-template-columns: 58px minmax(0, 1fr) 48px;
+          gap: 8px;
+        }
+
+        .bar-wrap {
+          grid-column: 1 / -1;
+        }
+
+        .footer {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="forecast" id="forecast" aria-live="polite">
+      <section class="empty" id="empty">Waiting for forecast data...</section>
+
+      <section class="content" id="content" hidden>
+        <header class="header">
+          <div>
+            <p class="eyebrow">5-day forecast</p>
+            <h1 id="city">Unknown city</h1>
+          </div>
+          <p class="summary" id="summary"></p>
+        </header>
+
+        <section class="range" id="range" aria-label="Daily forecast"></section>
+
+        <section class="footer" aria-label="Forecast summary">
+          <div class="stat">
+            <span class="stat-label">Warmest</span>
+            <span class="stat-value" id="warmest"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Rainiest</span>
+            <span class="stat-value" id="rainiest"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Average wind</span>
+            <span class="stat-value" id="wind"></span>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const elements = {
+        empty: document.getElementById("empty"),
+        content: document.getElementById("content"),
+        city: document.getElementById("city"),
+        summary: document.getElementById("summary"),
+        range: document.getElementById("range"),
+        warmest: document.getElementById("warmest"),
+        rainiest: document.getElementById("rainiest"),
+        wind: document.getElementById("wind"),
+      };
+
+      function unwrapToolOutput(raw) {
+        return raw?.structuredContent ?? raw?.toolOutput ?? raw;
+      }
+
+      function conditionKind(conditions) {
+        const value = String(conditions || "").toLowerCase();
+        if (value.includes("rain") || value.includes("drizzle")) return "rain";
+        if (value.includes("snow")) return "snow";
+        if (value.includes("storm") || value.includes("thunder")) return "storm";
+        if (value.includes("mist") || value.includes("fog")) return "fog";
+        if (value.includes("cloud")) return "cloud";
+        return "sun";
+      }
+
+      function dateParts(value) {
+        const date = new Date(value + "T12:00:00Z");
+        if (Number.isNaN(date.getTime())) return { dow: "Day", month: value || "" };
+        return {
+          dow: date.toLocaleDateString([], { weekday: "short" }),
+          month: date.toLocaleDateString([], { month: "short", day: "numeric" }),
+        };
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function barPosition(day, minTemp, maxTemp) {
+        const span = Math.max(maxTemp - minTemp, 1);
+        const left = clamp(((day.temp_low_c - minTemp) / span) * 100, 0, 96);
+        const width = clamp(((day.temp_high_c - day.temp_low_c) / span) * 100, 8, 100 - left);
+        return { left: left.toFixed(1) + "%", width: width.toFixed(1) + "%" };
+      }
+
+      function showError(message) {
+        elements.empty.textContent = message || "Forecast data is unavailable.";
+        elements.empty.className = "error";
+        elements.empty.hidden = false;
+        elements.content.hidden = true;
+      }
+
+      function summaryFor(forecasts) {
+        const rainiest = forecasts.reduce((max, day) =>
+          day.precipitation_prob > max.precipitation_prob ? day : max
+        );
+        if (rainiest.precipitation_prob >= 60) {
+          return "Rain gear matters most on this trip window.";
+        }
+        const warmest = forecasts.reduce((max, day) =>
+          day.temp_high_c > max.temp_high_c ? day : max
+        );
+        return "Highest daytime temperature reaches " + warmest.temp_high_c + "°C.";
+      }
+
+      function renderDay(day, minTemp, maxTemp) {
+        const date = dateParts(day.date);
+        const bar = barPosition(day, minTemp, maxTemp);
+        const item = document.createElement("article");
+        item.className = "day";
+        item.dataset.kind = conditionKind(day.conditions);
+        item.innerHTML = `
+          <div class="date">
+            <span class="dow"></span>
+            <span class="month"></span>
+          </div>
+          <div class="condition">
+            <span class="mark" aria-hidden="true"></span>
+            <span class="condition-text"></span>
+          </div>
+          <div class="bar-wrap">
+            <div class="temps">
+              <span class="low"></span>
+              <span class="high"></span>
+            </div>
+            <div class="track" aria-hidden="true">
+              <div class="bar"></div>
+            </div>
+          </div>
+          <div class="rain"><strong></strong>rain</div>
+        `;
+        item.querySelector(".dow").textContent = date.dow;
+        item.querySelector(".month").textContent = date.month;
+        item.querySelector(".condition-text").textContent = day.conditions || "Forecast";
+        item.querySelector(".low").textContent = day.temp_low_c + "°";
+        item.querySelector(".high").textContent = day.temp_high_c + "°";
+        item.querySelector(".bar").style.setProperty("--bar-left", bar.left);
+        item.querySelector(".bar").style.setProperty("--bar-width", bar.width);
+        item.querySelector(".rain strong").textContent = (day.precipitation_prob ?? 0) + "%";
+        return item;
+      }
+
+      function render(raw) {
+        const output = unwrapToolOutput(raw);
+        if (!output) return;
+
+        if (output.error) {
+          showError(output.error);
+          return;
+        }
+
+        const forecasts = Array.isArray(output.forecasts) ? output.forecasts : [];
+        if (forecasts.length === 0) {
+          showError("No forecast days were returned.");
+          return;
+        }
+
+        elements.empty.hidden = true;
+        elements.empty.className = "empty";
+        elements.content.hidden = false;
+        elements.city.textContent = output.city || "Unknown city";
+        elements.summary.textContent = summaryFor(forecasts);
+        elements.range.replaceChildren();
+
+        const minTemp = Math.min(...forecasts.map((day) => day.temp_low_c));
+        const maxTemp = Math.max(...forecasts.map((day) => day.temp_high_c));
+        forecasts.forEach((day) => {
+          elements.range.appendChild(renderDay(day, minTemp, maxTemp));
+        });
+
+        const warmest = forecasts.reduce((max, day) =>
+          day.temp_high_c > max.temp_high_c ? day : max
+        );
+        const rainiest = forecasts.reduce((max, day) =>
+          day.precipitation_prob > max.precipitation_prob ? day : max
+        );
+        const windAverage = Math.round(
+          forecasts.reduce((total, day) => total + (day.wind_speed || 0), 0) / forecasts.length
+        );
+
+        elements.warmest.textContent = warmest.temp_high_c + "°C";
+        elements.rainiest.textContent = (rainiest.precipitation_prob ?? 0) + "%";
+        elements.wind.textContent = windAverage + " m/s";
+      }
+
+      function currentToolOutput() {
+        return window.openai?.toolOutput;
+      }
+
+      render(currentToolOutput());
+
+      let checksRemaining = 50;
+      const checkForLateOutput = window.setInterval(() => {
+        render(currentToolOutput());
+        checksRemaining -= 1;
+        if (checksRemaining <= 0 || currentToolOutput()) {
+          window.clearInterval(checkForLateOutput);
+        }
+      }, 100);
+
+      window.addEventListener(
+        "message",
+        (event) => {
+          let message = event.data;
+          if (typeof message === "string") {
+            try {
+              message = JSON.parse(message);
+            } catch {
+              return;
+            }
+          }
+          if (!message || message.jsonrpc !== "2.0") return;
+          if (message.method !== "ui/notifications/tool-result") return;
+          render(message.params);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener(
+        "openai:set_globals",
+        (event) => {
+          render(event.detail?.globals?.toolOutput ?? window.openai?.toolOutput);
+        },
+        { passive: true }
+      );
+    </script>
+  </body>
+</html>

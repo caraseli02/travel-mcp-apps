@@ -1,0 +1,144 @@
+# ChatGPT Apps Readiness Review
+
+Date: 2026-04-29
+
+## Current Classification
+
+Primary archetype: `submission-ready`, eventually.
+
+Current stage: MCP foundation with Apps-aware resources for weather, packing, and travel tips.
+
+The repo now has local Streamable HTTP MCP servers, working tool descriptors, and a first weather widget resource. It is not yet a fully validated ChatGPT app because widget bridge behavior still needs to be tested in a runtime that provides `window.openai` or the MCP Apps bridge.
+
+## What Is On The Correct Path
+
+- FastAPI Cloud is a reasonable hosting target for the public HTTPS backend.
+- `pyproject.toml` has the FastAPI Cloud entrypoint: `app.main:app`.
+- Dependencies include `mcp`, `aiohttp`, `pydantic-settings`, and `fastapi[standard]`.
+- Runtime config is environment-based and keeps `OPENWEATHER_API_KEY` out of source.
+- Health and placeholder travel endpoints exist.
+- Tests exist and pass.
+- The learning roadmap keeps MCP implementation as your work, with hints and references.
+
+## Current Gaps Before A ChatGPT App Can Work End-To-End
+
+- Weather, packing, and travel tips now have first-pass Apps-aware UI resources.
+- The local preview used during development does not provide `window.openai`, so it can load the HTML but cannot prove widget data binding.
+- ChatGPT Developer Mode or a bridge-aware Apps inspector is still needed for true widget runtime validation.
+- Production widget resource metadata still needs the final `_meta.ui.domain` once the FastAPI Cloud domain is known.
+- Public submission artifacts are still pending: privacy policy, support contact, screenshots, test prompts, app metadata, and verified publisher readiness.
+
+## Important Course Corrections
+
+### 1. Use Current Widget MIME Type
+
+Use:
+
+```text
+text/html;profile=mcp-app
+```
+
+Do not use the older `text/html+mcp` wording in new implementation.
+
+### 2. Keep Tool Contracts Small And Intent-Based
+
+Each user intent should map to one tool. For this app, start with:
+
+- `get_current_weather`
+- `get_forecast`
+- `get_destination_tips`
+- `recommend_activities`
+- `generate_packing_list`
+- Later: render-focused tools if you choose a decoupled data/render pattern.
+
+Each tool should have:
+
+- clear name
+- title
+- input schema
+- `_meta.ui.resourceUri` when it renders a widget
+- `structuredContent` for model and widget data
+- `content` for model-readable narration
+- `_meta` for widget-only details
+
+Current weather status:
+
+- `get_current_weather` returns a real `CallToolResult` with top-level `structuredContent`.
+- The weather UI resource is versioned as `ui://weather/dashboard-v4.html`.
+- The weather resource uses MIME type `text/html;profile=mcp-app`.
+- `resources/read` returns resource `_meta` with UI CSP and widget description.
+
+### 3. Add Widget Metadata From The Start
+
+Each UI resource should plan for:
+
+```json
+{
+  "_meta": {
+    "ui": {
+      "prefersBorder": true,
+      "domain": "https://your-production-domain.example",
+      "csp": {
+        "connectDomains": ["https://your-api-domain.example"],
+        "resourceDomains": []
+      }
+    }
+  }
+}
+```
+
+For FastAPI Cloud, decide the final production domain before submission and use it consistently. During local development, leave `domain` out until the public HTTPS domain is real.
+
+### 4. Version UI Resource URIs
+
+Use versioned URIs once widgets are real:
+
+```text
+ui://weather/dashboard-v4.html
+ui://weather/forecast-chart-v1.html
+ui://packing/checklist-v1.html
+ui://travel/destination-guide-v1.html
+ui://travel/activity-cards-v1.html
+```
+
+When a widget changes incompatibly, publish a new URI instead of reusing the old one.
+
+### 5. Keep ChatGPT Submission Separate From Developer Mode
+
+Developer Mode is the correct target first. Public submission should happen only after:
+
+- hosted HTTPS endpoint is stable
+- app works in ChatGPT Developer Mode
+- widget CSP/domain metadata is correct
+- app has clear user value beyond plain ChatGPT conversation
+- review artifacts are prepared
+
+## Validation Performed
+
+Commands:
+
+```bash
+.venv/bin/python -m pytest -q
+```
+
+Result:
+
+```text
+14 passed
+```
+
+Static review:
+
+- FastAPI app exists and has a FastAPI Cloud entrypoint.
+- Weather, travel tips, and packing MCP servers exist.
+- Weather `get_current_weather` advertises `ui://weather/dashboard-v4.html`.
+- Weather `get_current_weather` returns real top-level `structuredContent`, not JSON text.
+- The weather UI resource is readable and carries `text/html;profile=mcp-app`.
+- Kiro docs and roadmap were updated away from stale `text/html+mcp` MIME wording.
+
+## Next Correct Step
+
+The local Developer Mode path has validated the core widget pattern across
+weather, packing, and travel tips. Next, decide how production hosting will
+expose MCP endpoints, then set final widget domain metadata once the public
+domain is known.

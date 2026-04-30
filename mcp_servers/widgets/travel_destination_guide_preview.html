@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Destination Guide Preview</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: #ffffff;
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(860px, 100%);
+        margin: 0 auto;
+      }
+
+      iframe {
+        display: block;
+        width: 100%;
+        height: 680px;
+        border: 0;
+        background: transparent;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <iframe
+        id="widget"
+        title="Destination guide widget preview"
+        src="travel_destination_guide_v1.html"
+      ></iframe>
+    </main>
+
+    <script>
+      const mockDestination = {
+        city: "Madrid",
+        country: "Spain",
+        overview: "A walkable capital with art museums, parks, late dining, plazas, and tapas culture.",
+        best_time: "March-May, September-November",
+        coordinates: { lat: 40.4168, lon: -3.7038 },
+        tips: [
+          {
+            category: "culture",
+            icon: "clock",
+            text: "Dinner often starts after 9pm, especially on weekends.",
+          },
+          {
+            category: "weather",
+            icon: "sun",
+            text: "In summer, plan outdoor walks early or late to avoid peak heat.",
+          },
+          {
+            category: "transportation",
+            icon: "metro",
+            text: "The metro is efficient and usually easier than taxis for central trips.",
+          },
+        ],
+        activities: [
+          {
+            name: "Prado Museum",
+            description: "Major European art museum with works by Velazquez, Goya, and El Greco.",
+            duration_hours: 3,
+            cost_usd: 18,
+            weather_dependent: false,
+          },
+          {
+            name: "Retiro Park",
+            description: "Large central park for walking, boating, and relaxed breaks.",
+            duration_hours: 2,
+            cost_usd: 0,
+            weather_dependent: true,
+          },
+          {
+            name: "Tapas Tour",
+            description: "Evening route through tapas bars in La Latina or Huertas.",
+            duration_hours: 3,
+            cost_usd: 45,
+            weather_dependent: false,
+          },
+        ],
+      };
+
+      const iframe = document.getElementById("widget");
+      iframe.addEventListener("load", () => {
+        iframe.contentWindow.openai = { toolOutput: mockDestination };
+        iframe.contentWindow.dispatchEvent(
+          new CustomEvent("openai:set_globals", {
+            detail: { globals: { toolOutput: mockDestination } },
+          })
+        );
+      });
+    </script>
+  </body>
+</html>

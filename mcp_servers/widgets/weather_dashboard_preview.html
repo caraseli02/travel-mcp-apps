@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Weather Dashboard Preview</title>
+    <style>
+      :root {
+        --ink: #111b20;
+        --muted: #65737a;
+        --paper: #fffaf0;
+        --green: #345e48;
+        --sun: #e3a72d;
+        --sky: #7bb0c1;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--ink);
+        background:
+          linear-gradient(rgba(17, 27, 32, 0.035) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(17, 27, 32, 0.035) 1px, transparent 1px),
+          radial-gradient(circle at 86% 12%, rgba(227, 167, 45, 0.26), transparent 28%),
+          radial-gradient(circle at 11% 82%, rgba(123, 176, 193, 0.28), transparent 34%),
+          #dfe6e2;
+        background-size: 34px 34px, 34px 34px, auto, auto, auto;
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .stage {
+        width: min(980px, 100%);
+        margin: 0 auto;
+        padding: 0;
+      }
+
+      iframe {
+        display: block;
+        width: 100%;
+        height: 520px;
+        border: 0;
+        background: transparent;
+      }
+
+      .variants {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin: 12px;
+      }
+
+      button {
+        min-height: 40px;
+        border: 0;
+        border-radius: 0;
+        background: rgba(255, 250, 240, 0.72);
+        color: var(--ink);
+        cursor: pointer;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 760;
+      }
+
+      button[aria-pressed="true"] {
+        background: var(--ink);
+        color: var(--paper);
+      }
+
+      @media (max-width: 720px) {
+        iframe {
+          height: 620px;
+        }
+
+        .variants {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="stage">
+      <iframe
+        id="widget"
+        title="Weather dashboard widget preview"
+        src="weather_dashboard_v4.html"
+      ></iframe>
+
+      <nav class="variants" aria-label="Preview sample conditions">
+        <button type="button" data-sample="mild" aria-pressed="true">Mild</button>
+        <button type="button" data-sample="rain">Rain</button>
+        <button type="button" data-sample="heat">Heat</button>
+      </nav>
+    </main>
+
+    <script>
+      const samples = {
+        mild: {
+          city: "Madrid",
+          temperature_celsius: 22,
+          temperature_fahrenheit: 72,
+          conditions: "Scattered Clouds",
+          humidity: 54,
+          wind_speed: 4,
+          precipitation_probability: 10,
+          timestamp: new Date().toISOString(),
+        },
+        rain: {
+          city: "Lisbon",
+          temperature_celsius: 16,
+          temperature_fahrenheit: 61,
+          conditions: "Light Rain",
+          humidity: 81,
+          wind_speed: 7,
+          precipitation_probability: 68,
+          timestamp: new Date().toISOString(),
+        },
+        heat: {
+          city: "Seville",
+          temperature_celsius: 33,
+          temperature_fahrenheit: 91,
+          conditions: "Clear Sky",
+          humidity: 28,
+          wind_speed: 3,
+          precipitation_probability: 0,
+          timestamp: new Date().toISOString(),
+        },
+      };
+
+      const iframe = document.getElementById("widget");
+      const buttons = Array.from(document.querySelectorAll("[data-sample]"));
+      let activeSample = "mild";
+
+      function sendSample(name) {
+        activeSample = name;
+        const sample = samples[name];
+        iframe.contentWindow.openai = { toolOutput: sample };
+        iframe.contentWindow.dispatchEvent(
+          new CustomEvent("openai:set_globals", {
+            detail: { globals: { toolOutput: sample } },
+          })
+        );
+        buttons.forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.sample === name));
+        });
+      }
+
+      iframe.addEventListener("load", () => sendSample(activeSample));
+      buttons.forEach((button) => {
+        button.addEventListener("click", () => sendSample(button.dataset.sample));
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+[project]
+name = "travel-mcp-app"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "aiohttp>=3.10.0",
+    "fastapi[standard]>=0.136.1",
+    "mcp>=1.1.0",
+    "pydantic-settings>=2.5.0",
+    "python-dotenv>=1.0.0",
+    "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[tool.fastapi]
+entrypoint = "app.main:app"

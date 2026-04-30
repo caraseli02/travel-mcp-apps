@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #101214;
+        --muted: #6b7280;
+        --soft: #f6f7f8;
+        --surface: #ffffff;
+        --accent: #2f6f4e;
+        --accent-soft: #e8f3ed;
+        --line: #e5e7eb;
+        --danger: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 280px;
+        color: var(--ink);
+        background: var(--surface);
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .checklist {
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        min-height: 320px;
+        padding: 16px;
+      }
+
+      .empty,
+      .error {
+        display: grid;
+        min-height: 300px;
+        place-items: center;
+        padding: 34px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+        text-align: center;
+      }
+
+      .empty::before {
+        content: "";
+        display: block;
+        width: 44px;
+        height: 44px;
+        margin: 0 auto 14px;
+        border-radius: 50%;
+        background: conic-gradient(var(--accent), rgba(47, 111, 78, 0.08));
+        animation: spin 1.2s linear infinite;
+      }
+
+      .error {
+        color: var(--danger);
+      }
+
+      .content {
+        display: grid;
+        gap: 14px;
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: start;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 0 6px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      h1 {
+        margin: 0;
+        max-width: 13ch;
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      .trip-meta {
+        align-self: start;
+        min-width: 112px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.28;
+        text-align: right;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .stat {
+        min-width: 0;
+        padding: 10px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .stat-label {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .stat-value {
+        display: block;
+        margin-top: 5px;
+        overflow-wrap: anywhere;
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .note {
+        margin: 0;
+        color: #374151;
+        font-size: 14px;
+        line-height: 1.42;
+      }
+
+      .weather-items {
+        display: grid;
+        gap: 7px;
+      }
+
+      .weather-item {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 9px;
+        align-items: start;
+        padding: 9px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .weather-item:first-child {
+        box-shadow: none;
+      }
+
+      .tag {
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .weather-copy {
+        min-width: 0;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.3;
+      }
+
+      .categories {
+        display: grid;
+        gap: 10px;
+      }
+
+      .category {
+        display: grid;
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      .category-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+
+      .category-title {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      .category-count {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .items {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 7px 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .item {
+        display: grid;
+        grid-template-columns: 16px minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+        min-width: 0;
+        color: #26343a;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.25;
+      }
+
+      .box {
+        width: 14px;
+        height: 14px;
+        margin-top: 1px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        background: var(--surface);
+      }
+
+      .item.weather .box {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .empty::before {
+          animation: none;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .checklist {
+          min-height: 0;
+          padding: 14px;
+        }
+
+        .header,
+        .summary {
+          grid-template-columns: 1fr;
+        }
+
+        .trip-meta {
+          text-align: left;
+        }
+
+        .items {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="checklist" id="checklist" aria-live="polite">
+      <section class="empty" id="empty">Waiting for packing data...</section>
+
+      <section class="content" id="content" hidden>
+        <header class="header">
+          <div>
+            <p class="eyebrow">Packing checklist</p>
+            <h1 id="destination">Destination</h1>
+          </div>
+          <p class="trip-meta" id="tripMeta"></p>
+        </header>
+
+        <section class="summary" aria-label="Packing summary">
+          <div class="stat">
+            <span class="stat-label">Weather</span>
+            <span class="stat-value" id="weatherCategory"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Range</span>
+            <span class="stat-value" id="temperatureRange"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Rain peak</span>
+            <span class="stat-value" id="rainPeak"></span>
+          </div>
+        </section>
+
+        <p class="note" id="note"></p>
+        <section class="weather-items" id="weatherItems" aria-label="Weather-based items"></section>
+        <section class="categories" id="categories" aria-label="Packing categories"></section>
+      </section>
+    </main>
+
+    <script>
+      const elements = {
+        empty: document.getElementById("empty"),
+        content: document.getElementById("content"),
+        destination: document.getElementById("destination"),
+        tripMeta: document.getElementById("tripMeta"),
+        weatherCategory: document.getElementById("weatherCategory"),
+        temperatureRange: document.getElementById("temperatureRange"),
+        rainPeak: document.getElementById("rainPeak"),
+        note: document.getElementById("note"),
+        weatherItems: document.getElementById("weatherItems"),
+        categories: document.getElementById("categories"),
+      };
+
+      function unwrapToolOutput(raw) {
+        return raw?.structuredContent ?? raw?.toolOutput ?? raw;
+      }
+
+      function titleCase(value) {
+        return String(value || "")
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (letter) => letter.toUpperCase());
+      }
+
+      function showError(message) {
+        elements.empty.textContent = message || "Packing data is unavailable.";
+        elements.empty.className = "error";
+        elements.empty.hidden = false;
+        elements.content.hidden = true;
+      }
+
+      function weatherItemNames(output) {
+        return new Set((output.weather_based_items || []).map((entry) => entry.item));
+      }
+
+      function renderWeatherItems(items) {
+        elements.weatherItems.replaceChildren();
+        if (!Array.isArray(items) || items.length === 0) {
+          elements.weatherItems.hidden = true;
+          return;
+        }
+
+        elements.weatherItems.hidden = false;
+        items.forEach((entry) => {
+          const row = document.createElement("article");
+          row.className = "weather-item";
+          row.innerHTML = `
+            <span class="tag"></span>
+            <span class="weather-copy"></span>
+          `;
+          row.querySelector(".tag").textContent = entry.item || "Weather";
+          row.querySelector(".weather-copy").textContent = entry.reason || "Recommended for this forecast.";
+          elements.weatherItems.appendChild(row);
+        });
+      }
+
+      function renderCategories(categories, weatherNames) {
+        elements.categories.replaceChildren();
+        Object.entries(categories || {}).forEach(([name, items]) => {
+          if (!Array.isArray(items) || items.length === 0) return;
+
+          const section = document.createElement("article");
+          section.className = "category";
+          section.innerHTML = `
+            <div class="category-head">
+              <h2 class="category-title"></h2>
+              <span class="category-count"></span>
+            </div>
+            <ul class="items"></ul>
+          `;
+          section.querySelector(".category-title").textContent = titleCase(name);
+          section.querySelector(".category-count").textContent = items.length + " items";
+
+          const list = section.querySelector(".items");
+          items.forEach((item) => {
+            const row = document.createElement("li");
+            row.className = weatherNames.has(item) ? "item weather" : "item";
+            row.innerHTML = `<span class="box" aria-hidden="true"></span><span></span>`;
+            row.querySelector("span:last-child").textContent = item;
+            list.appendChild(row);
+          });
+
+          elements.categories.appendChild(section);
+        });
+      }
+
+      function render(raw) {
+        const output = unwrapToolOutput(raw);
+        if (!output) return;
+
+        if (output.error) {
+          showError(output.error);
+          return;
+        }
+
+        const summary = output.weather_summary || {};
+        elements.empty.hidden = true;
+        elements.empty.className = "empty";
+        elements.content.hidden = false;
+
+        elements.destination.textContent = output.destination || "Destination";
+        elements.tripMeta.textContent = (output.duration_days || "--") + "-day trip";
+        elements.weatherCategory.textContent = titleCase(summary.weather_category || "mixed");
+        elements.temperatureRange.textContent =
+          summary.min_temp_c === undefined || summary.max_temp_c === undefined
+            ? "--"
+            : summary.min_temp_c + "° to " + summary.max_temp_c + "°";
+        elements.rainPeak.textContent =
+          summary.max_precipitation_prob === undefined
+            ? "--"
+            : summary.max_precipitation_prob + "%";
+        elements.note.textContent = Array.isArray(output.notes) && output.notes.length
+          ? output.notes[0]
+          : "Pack core travel essentials and adjust for your itinerary.";
+
+        const weatherNames = weatherItemNames(output);
+        renderWeatherItems(output.weather_based_items);
+        renderCategories(output.categories, weatherNames);
+      }
+
+      function currentToolOutput() {
+        return window.openai?.toolOutput;
+      }
+
+      render(currentToolOutput());
+
+      let checksRemaining = 50;
+      const checkForLateOutput = window.setInterval(() => {
+        render(currentToolOutput());
+        checksRemaining -= 1;
+        if (checksRemaining <= 0 || currentToolOutput()) {
+          window.clearInterval(checkForLateOutput);
+        }
+      }, 100);
+
+      window.addEventListener(
+        "message",
+        (event) => {
+          let message = event.data;
+          if (typeof message === "string") {
+            try {
+              message = JSON.parse(message);
+            } catch {
+              return;
+            }
+          }
+          if (!message || message.jsonrpc !== "2.0") return;
+          if (message.method !== "ui/notifications/tool-result") return;
+          render(message.params);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener(
+        "openai:set_globals",
+        (event) => {
+          render(event.detail?.globals?.toolOutput ?? window.openai?.toolOutput);
+        },
+        { passive: true }
+      );
+    </script>
+  </body>
+</html>
