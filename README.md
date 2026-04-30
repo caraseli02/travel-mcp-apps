@@ -24,6 +24,11 @@ Local MCP endpoints mounted in the FastAPI app:
 - Weather: http://localhost:8000/mcp/weather/
 - Travel tips: http://localhost:8000/mcp/travel/
 - Packing: http://localhost:8000/mcp/packing/
+- Unified travel agent: http://localhost:8000/mcp/travel-agent/
+
+Trip Inbox and Trip Board tools require Supabase Postgres through `DATABASE_URL`.
+The MCP tool returns a setup error if this value is missing, instead of silently
+creating local state.
 
 ### Deploy to FastAPI Cloud
 
@@ -45,6 +50,12 @@ Set the OpenWeather key as a FastAPI Cloud secret:
 fastapi cloud env set --secret OPENWEATHER_API_KEY "your-api-key"
 ```
 
+Set the Supabase Postgres connection string for Trip Inbox and Trip Board:
+
+```bash
+fastapi cloud env set --secret DATABASE_URL "postgresql://..."
+```
+
 Environment variable changes apply on the next deployment.
 
 ## Project Structure
@@ -53,6 +64,8 @@ Environment variable changes apply on the next deployment.
 - `app/config.py` - environment-based settings
 - `app/routers/health.py` - health and MCP readiness endpoints
 - `app/routers/travel.py` - travel API endpoint placeholder for later MCP orchestration
+- `services/trips.py` - Postgres-backed Trip and TripItem persistence for the unified travel agent
+- `mcp_servers/travel_agent_server.py` - unified MCP endpoint with weather, travel, packing, Trip Inbox, and Trip Board tools
 - `main.py` - compatibility import for `app.main:app`
 - `pyproject.toml` - Project dependencies
 - `.env.example` - local environment variable template
