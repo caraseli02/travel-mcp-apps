@@ -33,6 +33,22 @@ async def test_mounted_mcp_servers_list_tools() -> None:
         ("/mcp/weather/", {"get_current_weather", "get_forecast"}),
         ("/mcp/travel/", {"get_destination_tips", "recommend_activities"}),
         ("/mcp/packing/", {"generate_packing_list"}),
+        (
+            "/mcp/travel-agent/",
+            {
+                "create_trip",
+                "add_trip_item",
+                "list_trip_inbox",
+                "update_trip_item_status",
+                "get_trip_board",
+                "get_trip_summary",
+                "get_current_weather",
+                "get_forecast",
+                "get_destination_tips",
+                "recommend_activities",
+                "generate_packing_list",
+            },
+        ),
     ]
 
     async with app.router.lifespan_context(app):

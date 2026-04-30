@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from mcp_servers.packing_server import packing_checklist_ui
+from mcp_servers.travel_agent_server import trip_board_ui, trip_inbox_ui
 from mcp_servers.travel_tips_server import (
     travel_activity_cards_ui,
     travel_destination_guide_ui,
@@ -14,6 +15,8 @@ WIDGETS: list[tuple[str, Callable[[], str], str]] = [
     ("ui://packing/checklist-v1.html", packing_checklist_ui, "Packing checklist"),
     ("ui://travel/destination-guide-v1.html", travel_destination_guide_ui, "Destination guide"),
     ("ui://travel/activity-cards-v1.html", travel_activity_cards_ui, "Activity picks"),
+    ("ui://trip/inbox-v1.html", trip_inbox_ui, "Trip Inbox"),
+    ("ui://trip/board-v1.html", trip_board_ui, "Trip Board"),
 ]
 
 
