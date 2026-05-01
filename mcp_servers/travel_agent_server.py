@@ -313,6 +313,106 @@ def generate_packing_list(
 
 
 @server.resource(
+    "ui://weather/dashboard-v4.html",
+    name="weather_dashboard_ui",
+    description="Interactive weather dashboard UI",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {
+            "prefersBorder": True,
+            "csp": {
+                "connectDomains": [],
+                "resourceDomains": [],
+            },
+        },
+        "openai/widgetDescription": "Shows the current weather for the requested city.",
+    },
+)
+def weather_dashboard_ui() -> str:
+    return (WIDGETS_DIR / "weather_dashboard_v4.html").read_text(encoding="utf-8")
+
+
+@server.resource(
+    "ui://weather/forecast-chart-v1.html",
+    name="weather_forecast_chart_ui",
+    description="5-day weather forecast chart UI",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {
+            "prefersBorder": True,
+            "csp": {
+                "connectDomains": [],
+                "resourceDomains": [],
+            },
+        },
+        "openai/widgetDescription": "Shows a compact multi-day weather forecast for the requested city.",
+    },
+)
+def weather_forecast_chart_ui() -> str:
+    return (WIDGETS_DIR / "weather_forecast_chart_v1.html").read_text(encoding="utf-8")
+
+
+@server.resource(
+    "ui://packing/checklist-v1.html",
+    name="packing_checklist_ui",
+    description="Packing checklist UI",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {
+            "prefersBorder": True,
+            "csp": {
+                "connectDomains": [],
+                "resourceDomains": [],
+            },
+        },
+        "openai/widgetDescription": "Shows a categorized packing checklist for the trip.",
+    },
+)
+def packing_checklist_ui() -> str:
+    return (WIDGETS_DIR / "packing_checklist_v1.html").read_text(encoding="utf-8")
+
+
+@server.resource(
+    "ui://travel/destination-guide-v1.html",
+    name="travel_destination_guide_ui",
+    description="Destination guide UI",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {
+            "prefersBorder": True,
+            "csp": {
+                "connectDomains": [],
+                "resourceDomains": [],
+            },
+        },
+        "openai/widgetDescription": "Shows a compact destination guide with travel tips and first activity picks.",
+    },
+)
+def travel_destination_guide_ui() -> str:
+    return (WIDGETS_DIR / "travel_destination_guide_v1.html").read_text(encoding="utf-8")
+
+
+@server.resource(
+    "ui://travel/activity-cards-v1.html",
+    name="travel_activity_cards_ui",
+    description="Activity recommendation cards UI",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {
+            "prefersBorder": True,
+            "csp": {
+                "connectDomains": [],
+                "resourceDomains": [],
+            },
+        },
+        "openai/widgetDescription": "Shows activity recommendations matched to weather and season.",
+    },
+)
+def travel_activity_cards_ui() -> str:
+    return (WIDGETS_DIR / "travel_activity_cards_v1.html").read_text(encoding="utf-8")
+
+
+@server.resource(
     "ui://trip/inbox-v1.html",
     name="trip_inbox_ui",
     description="Trip Inbox UI",
