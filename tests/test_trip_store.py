@@ -9,12 +9,32 @@ from services.trips import (
     TripValidationError,
     build_board,
     classify_trip_item,
+    database_url_summary,
+    normalize_database_url,
     normalize_raw_content,
 )
 
 
 def test_normalizes_raw_content_for_dedupe() -> None:
     assert normalize_raw_content(" HTTPS://Example.com/Hotel/  ") == "example.com/hotel"
+
+
+def test_normalizes_database_url_for_psycopg() -> None:
+    assert (
+        normalize_database_url("postgresql+psycopg://user:pass@example.com/app")
+        == "postgresql://user:pass@example.com/app?sslmode=require&connect_timeout=8"
+    )
+    assert (
+        normalize_database_url("postgres://user:pass@example.com/app?sslmode=require")
+        == "postgresql://user:pass@example.com/app?sslmode=require&connect_timeout=8"
+    )
+
+
+def test_database_url_summary_redacts_credentials() -> None:
+    assert (
+        database_url_summary("postgresql://user:secret@example.com:6543/app?sslmode=require")
+        == "postgresql://example.com:6543/app"
+    )
 
 
 @pytest.mark.parametrize(

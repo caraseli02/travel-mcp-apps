@@ -3,12 +3,14 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 import re
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from typing import Any
 from uuid import uuid4
 
+import psycopg
 from psycopg import errors
 from psycopg.rows import dict_row
-from psycopg_pool import ConnectionPool
+from psycopg_pool import NullConnectionPool
 
 
 ITEM_TYPES = {
@@ -40,6 +42,10 @@ class TripStoreError(RuntimeError):
 
 class TripConfigError(TripStoreError):
     """Raised when Postgres is not configured."""
+
+
+class TripConnectionError(TripStoreError):
+    """Raised when Postgres is configured but unreachable."""
 
 
 class TripValidationError(TripStoreError):
@@ -181,16 +187,63 @@ def summarize_items(items: list[TripItem]) -> dict[str, Any]:
     }
 
 
+def normalize_database_url(database_url: str) -> str:
+    value = database_url.strip()
+    if not value:
+        return ""
+    if value.startswith("postgresql+psycopg://"):
+        value = "postgresql://" + value.removeprefix("postgresql+psycopg://")
+    if value.startswith("postgres+psycopg://"):
+        value = "postgresql://" + value.removeprefix("postgres+psycopg://")
+    if value.startswith("postgres://"):
+        value = "postgresql://" + value.removeprefix("postgres://")
+
+    parts = urlsplit(value)
+    if parts.scheme not in {"postgresql", "postgres"}:
+        return value
+
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query.setdefault("sslmode", "require")
+    query.setdefault("connect_timeout", "8")
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), parts.fragment))
+
+
+def database_url_summary(database_url: str) -> str:
+    parts = urlsplit(database_url)
+    host = parts.hostname or "unknown-host"
+    port = f":{parts.port}" if parts.port else ""
+    database = parts.path.lstrip("/") or "unknown-db"
+    return f"{parts.scheme}://{host}{port}/{database}"
+
+
 class PostgresTripStore:
-    def __init__(self, database_url: str, min_size: int = 1, max_size: int = 5) -> None:
-        if not database_url.strip():
+    def __init__(self, database_url: str, min_size: int = 0, max_size: int = 5) -> None:
+        normalized_url = normalize_database_url(database_url)
+        if not normalized_url:
             raise TripConfigError("DATABASE_URL is required for trip persistence.")
-        self._pool = ConnectionPool(
-            conninfo=database_url,
+        self._database_url = normalized_url
+        self._database_summary = database_url_summary(normalized_url)
+        try:
+            with psycopg.connect(
+                normalized_url,
+                autocommit=True,
+                row_factory=dict_row,
+            ):
+                pass
+        except Exception as exc:
+            raise TripConnectionError(
+                f"Could not connect to Postgres at {self._database_summary}: {exc}"
+            ) from exc
+
+        self._pool = NullConnectionPool(
+            conninfo=normalized_url,
             min_size=min_size,
             max_size=max_size,
             kwargs={"autocommit": True, "row_factory": dict_row},
+            timeout=8,
+            open=False,
         )
+        self._pool.open()
         self._schema_ready = False
 
     def close(self) -> None:
