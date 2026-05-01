@@ -54,7 +54,7 @@ server = FastMCP(
 def get_trip_store() -> PostgresTripStore:
     global _STORE
     if _STORE is None:
-        _STORE = PostgresTripStore(get_settings().database_url)
+        _STORE = PostgresTripStore(get_settings().trip_database_url)
     return _STORE
 
 

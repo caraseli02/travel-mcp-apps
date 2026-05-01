@@ -27,8 +27,9 @@ Local MCP endpoints mounted in the FastAPI app:
 - Unified travel agent: http://localhost:8000/mcp/travel-agent/
 
 Trip Inbox and Trip Board tools require Supabase Postgres through `DATABASE_URL`.
-The MCP tool returns a setup error if this value is missing, instead of silently
-creating local state.
+If the FastAPI Cloud Supabase integration was connected with a custom variable
+name, `SUPABASE_DATABASE_URL` also works. The MCP tool returns a setup error if
+neither value is present, instead of silently creating local state.
 
 ### Deploy to FastAPI Cloud
 
@@ -54,6 +55,12 @@ Set the Supabase Postgres connection string for Trip Inbox and Trip Board:
 
 ```bash
 fastapi cloud env set --secret DATABASE_URL "postgresql://..."
+```
+
+If you customized the FastAPI Cloud Supabase integration variable name, set:
+
+```bash
+fastapi cloud env set --secret SUPABASE_DATABASE_URL "postgresql://..."
 ```
 
 Environment variable changes apply on the next deployment.

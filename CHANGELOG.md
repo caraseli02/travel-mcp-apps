@@ -14,3 +14,4 @@ All notable changes to this project are documented here.
 ### Changed
 
 - Documented the new `DATABASE_URL` deployment secret and regenerated the dependency lockfile with `psycopg` pool support.
+- Added support for FastAPI Cloud Supabase integrations that expose the connection string as `SUPABASE_DATABASE_URL`.
