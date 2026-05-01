@@ -20,6 +20,13 @@ Current Phase 7 widget resources:
 | Packing | `8103` | `generate_packing_list` | `ui://packing/checklist-v1.html` |
 | Travel tips | `8102` | `get_destination_tips` | `ui://travel/destination-guide-v1.html` |
 | Travel tips | `8102` | `recommend_activities` | `ui://travel/activity-cards-v1.html` |
+| Travel agent | `8104` | `add_trip_item` / `list_trip_inbox` | `ui://trip/inbox-v1.html` |
+| Travel agent | `8104` | `get_trip_board` | `ui://trip/board-v1.html` |
+
+The FastAPI app also mounts the unified travel-agent MCP endpoint at
+`/mcp/travel-agent/`. Prefer that endpoint for ChatGPT Developer Mode when
+testing the real app flow because it exposes trip tools plus weather, travel
+tips, activity recommendations, and packing from one connection.
 
 Each Apps-aware tool uses:
 
@@ -142,6 +149,9 @@ Recommended local steps:
 
    # Packing widget
    MCP_DEV_TUNNEL=1 python mcp_servers/packing_server.py
+
+   # Unified travel agent widgets and tools
+   MCP_DEV_TUNNEL=1 python mcp_servers/travel_agent_server.py
    ```
 
    `MCP_DEV_TUNNEL=1` disables localhost-only DNS rebinding protection for this
@@ -156,6 +166,7 @@ Recommended local steps:
    ngrok http 8101  # weather
    ngrok http 8102  # travel tips
    ngrok http 8103  # packing
+   ngrok http 8104  # unified travel agent
    ```
 
 3. Use the HTTPS tunnel URL with `/mcp` as the MCP server URL.
@@ -176,6 +187,8 @@ Recommended local steps:
    Generate a packing list for a 5-day trip to Amsterdam. Use rainy_mild as the weather forecast.
    Show me destination tips for Madrid.
    Recommend activities in London for rainy spring weather.
+   Create a Tokyo trip, save this hotel option, then show my trip inbox.
+   Move the saved hotel to shortlisted and show my trip board.
    ```
 
 6. Expected result: ChatGPT calls the matching tool and renders the associated widget.

@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #151719;
+        --muted: #667085;
+        --surface: #ffffff;
+        --soft: #f5f7f8;
+        --line: #e4e7ec;
+        --accent: #1f7a6d;
+        --accent-soft: #e7f4f1;
+        --warn: #9a3412;
+        --warn-soft: #fff4e6;
+        --danger: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 280px;
+        color: var(--ink);
+        background: var(--surface);
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .inbox {
+        min-height: 320px;
+        padding: 16px;
+      }
+
+      .empty,
+      .error {
+        display: grid;
+        min-height: 280px;
+        place-items: center;
+        padding: 28px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+        text-align: center;
+      }
+
+      .error {
+        color: var(--danger);
+      }
+
+      .content {
+        display: grid;
+        gap: 14px;
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: start;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        gap: 7px;
+        align-items: center;
+        margin: 0 0 6px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 750;
+        line-height: 1.1;
+        letter-spacing: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .count {
+        min-width: 76px;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
+        color: #344054;
+        font-size: 12px;
+        font-weight: 750;
+        line-height: 1.2;
+        text-align: center;
+      }
+
+      .notice {
+        display: none;
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: var(--warn-soft);
+        color: var(--warn);
+        font-size: 13px;
+        font-weight: 650;
+        line-height: 1.35;
+      }
+
+      .notice[data-visible="true"] {
+        display: block;
+      }
+
+      .items {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .item {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .item-head {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .badge,
+      .source {
+        display: inline-flex;
+        align-items: center;
+        max-width: 100%;
+        min-height: 22px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.2;
+        text-transform: capitalize;
+      }
+
+      .badge {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      .source {
+        background: var(--soft);
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 750;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .raw,
+      .notes {
+        margin: 0;
+        color: #344054;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.38;
+        overflow-wrap: anywhere;
+      }
+
+      .notes {
+        color: var(--muted);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (max-width: 560px) {
+        .inbox {
+          min-height: 0;
+          padding: 14px;
+        }
+
+        .header {
+          grid-template-columns: 1fr;
+        }
+
+        .count {
+          justify-self: start;
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="inbox" aria-live="polite">
+      <section class="empty" id="empty">Waiting for trip inbox data...</section>
+
+      <section class="content" id="content" hidden>
+        <header class="header">
+          <div>
+            <p class="eyebrow">Trip Inbox</p>
+            <h1 id="tripTitle">Trip</h1>
+          </div>
+          <div class="count" id="count">0 items</div>
+        </header>
+        <div class="notice" id="notice"></div>
+        <ul class="items" id="items"></ul>
+      </section>
+    </main>
+
+    <script>
+      const elements = {
+        empty: document.getElementById("empty"),
+        content: document.getElementById("content"),
+        tripTitle: document.getElementById("tripTitle"),
+        count: document.getElementById("count"),
+        notice: document.getElementById("notice"),
+        items: document.getElementById("items"),
+      };
+
+      function unwrapToolOutput(raw) {
+        return raw?.structuredContent ?? raw?.toolOutput ?? raw;
+      }
+
+      function showEmpty(message) {
+        elements.empty.textContent = message;
+        elements.empty.className = "empty";
+        elements.empty.hidden = false;
+        elements.content.hidden = true;
+      }
+
+      function showError(message) {
+        elements.empty.textContent = message || "Trip inbox is unavailable.";
+        elements.empty.className = "error";
+        elements.empty.hidden = false;
+        elements.content.hidden = true;
+      }
+
+      function renderItem(item) {
+        const row = document.createElement("li");
+        row.className = "item";
+        row.innerHTML = `
+          <div class="item-head">
+            <span class="badge"></span>
+            <span class="source" hidden></span>
+          </div>
+          <h2 class="title"></h2>
+          <p class="raw"></p>
+          <p class="notes" hidden></p>
+        `;
+        row.querySelector(".badge").textContent = item.item_type || "note";
+        const source = row.querySelector(".source");
+        if (item.source_label) {
+          source.hidden = false;
+          source.textContent = item.source_label;
+        }
+        row.querySelector(".title").textContent = item.title || item.raw_content || "Saved fragment";
+        row.querySelector(".raw").textContent = item.raw_content || "";
+        const notes = row.querySelector(".notes");
+        if (item.notes) {
+          notes.hidden = false;
+          notes.textContent = item.notes;
+        }
+        return row;
+      }
+
+      function render(raw) {
+        const output = unwrapToolOutput(raw);
+        if (!output) return;
+        if (output.error) {
+          showError(output.error);
+          return;
+        }
+
+        const items = Array.isArray(output.items) ? output.items : [];
+        const trip = output.trip || {};
+        if (!trip.title && items.length === 0) {
+          showEmpty("No trip inbox data was returned.");
+          return;
+        }
+
+        elements.empty.hidden = true;
+        elements.content.hidden = false;
+        elements.tripTitle.textContent = trip.title || "Trip";
+        elements.count.textContent = items.length + " inbox item" + (items.length === 1 ? "" : "s");
+        elements.notice.dataset.visible = output.deduped ? "true" : "false";
+        elements.notice.textContent = output.deduped ? "Already saved. Showing the existing inbox item." : "";
+        elements.items.replaceChildren();
+
+        if (items.length === 0) {
+          const emptyItem = document.createElement("li");
+          emptyItem.className = "item";
+          emptyItem.textContent = "No unprocessed fragments yet.";
+          elements.items.appendChild(emptyItem);
+          return;
+        }
+
+        items.forEach((item) => elements.items.appendChild(renderItem(item)));
+      }
+
+      function currentToolOutput() {
+        return window.openai?.toolOutput;
+      }
+
+      render(currentToolOutput());
+
+      let checksRemaining = 50;
+      const checkForLateOutput = window.setInterval(() => {
+        render(currentToolOutput());
+        checksRemaining -= 1;
+        if (checksRemaining <= 0 || currentToolOutput()) {
+          window.clearInterval(checkForLateOutput);
+        }
+      }, 100);
+
+      window.addEventListener(
+        "message",
+        (event) => {
+          let message = event.data;
+          if (typeof message === "string") {
+            try {
+              message = JSON.parse(message);
+            } catch {
+              return;
+            }
+          }
+          if (!message || message.jsonrpc !== "2.0") return;
+          if (message.method !== "ui/notifications/tool-result") return;
+          render(message.params);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener(
+        "openai:set_globals",
+        (event) => {
+          render(event.detail?.globals?.toolOutput ?? window.openai?.toolOutput);
+        },
+        { passive: true }
+      );
+    </script>
+  </body>
+</html>
