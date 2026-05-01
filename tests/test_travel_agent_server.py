@@ -81,7 +81,7 @@ def test_tool_returns_clear_error_when_database_url_missing(monkeypatch: pytest.
     monkeypatch.setattr(
         travel_agent_server,
         "get_settings",
-        lambda: type("Settings", (), {"database_url": ""})(),
+        lambda: type("Settings", (), {"trip_database_url": ""})(),
     )
 
     result = travel_agent_server.create_trip("Rome")
