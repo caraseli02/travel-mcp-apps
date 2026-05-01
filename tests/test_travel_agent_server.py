@@ -104,3 +104,21 @@ def test_tool_returns_mcp_error_for_store_connection_failure(
     assert result.structuredContent == {
         "error": "Trip persistence failed: could not connect to Supabase"
     }
+
+
+def test_unified_server_registers_every_tool_output_template() -> None:
+    templates = {
+        "ui://trip/inbox-v1.html": travel_agent_server.trip_inbox_ui,
+        "ui://trip/board-v1.html": travel_agent_server.trip_board_ui,
+        "ui://weather/dashboard-v4.html": travel_agent_server.weather_dashboard_ui,
+        "ui://weather/forecast-chart-v1.html": travel_agent_server.weather_forecast_chart_ui,
+        "ui://packing/checklist-v1.html": travel_agent_server.packing_checklist_ui,
+        "ui://travel/destination-guide-v1.html": travel_agent_server.travel_destination_guide_ui,
+        "ui://travel/activity-cards-v1.html": travel_agent_server.travel_activity_cards_ui,
+    }
+
+    for uri, read_resource in templates.items():
+        html = read_resource()
+
+        assert html.startswith("<!doctype html>"), uri
+        assert "window.openai?.toolOutput" in html, uri
