@@ -569,6 +569,8 @@ class FileTripStore(InMemoryTripStore):
     def _load(self) -> None:
         with self._lock:
             if not self._file_path.exists():
+                self.trips = {}
+                self.items = {}
                 return
             try:
                 data = json.loads(self._file_path.read_text(encoding="utf-8"))
@@ -594,7 +596,7 @@ class FileTripStore(InMemoryTripStore):
                 "trips": [trip_to_dict(trip) for trip in self.trips.values()],
                 "items": [item_to_dict(item) for item in self.items.values()],
             }
-            temp_path = self._file_path.with_suffix(f"{self._file_path.suffix}.tmp")
+            temp_path = self._file_path.parent / f".{self._file_path.name}.{uuid4().hex}.tmp"
             try:
                 temp_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
                 temp_path.replace(self._file_path)
@@ -602,6 +604,21 @@ class FileTripStore(InMemoryTripStore):
                 raise TripStoreError(
                     f"Could not save file trip store at {self._file_path}: {exc}"
                 ) from exc
+
+    def get_trip(self, trip_id: str) -> Trip:
+        with self._lock:
+            self._load()
+            return super().get_trip(trip_id)
+
+    def get_item(self, item_id: str) -> TripItem:
+        with self._lock:
+            self._load()
+            return super().get_item(item_id)
+
+    def list_items(self, trip_id: str, status: str | None = None) -> list[TripItem]:
+        with self._lock:
+            self._load()
+            return super().list_items(trip_id, status)
 
     def create_trip(
         self,
@@ -611,12 +628,14 @@ class FileTripStore(InMemoryTripStore):
         end_date: str | None = None,
     ) -> Trip:
         with self._lock:
+            self._load()
             trip = super().create_trip(title, destination, start_date, end_date)
             self._save()
             return trip
 
     def add_item(self, trip_id: str, raw_content: str, **kwargs: Any) -> tuple[TripItem, bool]:
         with self._lock:
+            self._load()
             item, deduped = super().add_item(trip_id, raw_content, **kwargs)
             if not deduped:
                 self._save()
@@ -630,6 +649,7 @@ class FileTripStore(InMemoryTripStore):
         notes: str | None = None,
     ) -> TripItem:
         with self._lock:
+            self._load()
             item = super().update_item_status(item_id, status, day_label, notes)
             self._save()
             return item
