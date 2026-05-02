@@ -12,7 +12,6 @@ class Settings(BaseSettings):
     environment: str = "development"
     debug: bool = True
     database_url: str = ""
-    supabase_database_url: str = ""
     openweather_api_key: str = ""
     weather_mcp_url: AnyHttpUrl = Field(default="http://localhost:8000/mcp/weather/")
     travel_tips_mcp_url: AnyHttpUrl = Field(default="http://localhost:8000/mcp/travel/")
@@ -24,7 +23,7 @@ class Settings(BaseSettings):
 
     @property
     def trip_database_url(self) -> str:
-        return self.database_url.strip() or self.supabase_database_url.strip()
+        return self.database_url.strip()
 
 
 @lru_cache
