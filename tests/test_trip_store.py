@@ -94,6 +94,20 @@ def test_file_store_persists_trip_items_across_store_instances(tmp_path) -> None
     assert reloaded.list_items(trip.id, "shortlisted")[0].day_label == "Day 1"
 
 
+def test_file_store_refreshes_stale_instances_before_operations(tmp_path) -> None:
+    path = tmp_path / "trips.json"
+    first_worker = FileTripStore(str(path))
+    second_worker = FileTripStore(str(path))
+
+    trip = first_worker.create_trip("Tokyo", destination="Tokyo")
+    item, deduped = second_worker.add_item(trip.id, "https://example.com/hotel")
+    second_trip = second_worker.create_trip("Osaka", destination="Osaka")
+
+    assert deduped is False
+    assert item.trip_id == trip.id
+    assert first_worker.get_trip(second_trip.id).destination == "Osaka"
+
+
 def test_store_rejects_empty_trip_title_and_content() -> None:
     store = InMemoryTripStore()
 
