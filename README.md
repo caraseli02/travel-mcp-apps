@@ -26,10 +26,11 @@ Local MCP endpoints mounted in the FastAPI app:
 - Packing: http://localhost:8000/mcp/packing/
 - Unified travel agent: http://localhost:8000/mcp/travel-agent/
 
-Trip Inbox and Trip Board tools use Postgres through `DATABASE_URL` by default.
-If the FastAPI Cloud Supabase integration was connected with a custom variable
-name, `SUPABASE_DATABASE_URL` also works. The MCP tool returns a setup error if
-neither value is present.
+Trip Inbox and Trip Board tools require a Postgres database through `DATABASE_URL`.
+The recommended setup is [Neon](https://neon.tech) via the FastAPI Cloud integration
+(Storage → Connect Neon), which sets `DATABASE_URL` automatically.
+If you customize the integration variable name, `NEON_DATABASE_URL` also works.
+The MCP tool returns a setup error if no database is configured.
 
 For temporary GPT Apps testing without an external database, set
 `TRIP_STORE_BACKEND=file`. This stores trips in `TRIP_STORE_FILE_PATH`, which
@@ -56,16 +57,23 @@ Set the OpenWeather key as a FastAPI Cloud secret:
 fastapi cloud env set --secret OPENWEATHER_API_KEY "your-api-key"
 ```
 
-Set the Supabase Postgres connection string for Trip Inbox and Trip Board:
+Set up Neon Postgres for Trip Inbox and Trip Board:
+
+1. Go to your app's **Storage** tab in the FastAPI Cloud dashboard
+2. Click **Connect** on the Neon integration
+3. Select your Neon project and branch
+4. `DATABASE_URL` is set automatically
+
+Or set it manually:
 
 ```bash
 fastapi cloud env set --secret DATABASE_URL "postgresql://..."
 ```
 
-If you customized the FastAPI Cloud Supabase integration variable name, set:
+If you customized the FastAPI Cloud Neon integration variable name, set:
 
 ```bash
-fastapi cloud env set --secret SUPABASE_DATABASE_URL "postgresql://..."
+fastapi cloud env set --secret NEON_DATABASE_URL "postgresql://..."
 ```
 
 Or use the temporary file store while testing GPT Apps:

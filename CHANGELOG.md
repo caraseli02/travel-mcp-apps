@@ -7,11 +7,11 @@ All notable changes to this project are documented here.
 ### Added
 
 - Added a unified travel-agent MCP endpoint so ChatGPT can use weather, destination tips, activity recommendations, packing, Trip Inbox, and Trip Board tools from one app connection.
-- Added persistent Trip and TripItem storage backed by Supabase Postgres through `DATABASE_URL`, with duplicate travel fragments detected by normalized raw content.
+- Added persistent Trip and TripItem storage backed by Postgres through `DATABASE_URL`, with duplicate travel fragments detected by normalized raw content.
 - Added Trip Inbox and Trip Board widgets so saved planning fragments can be reviewed, grouped, and turned into visible trip state.
 - Added tests for trip storage behavior, MCP tool structured output, widget resources, and the unified `/mcp/travel-agent/` endpoint.
 
 ### Changed
 
 - Documented the new `DATABASE_URL` deployment secret and regenerated the dependency lockfile with `psycopg` pool support.
-- Added support for FastAPI Cloud Supabase integrations that expose the connection string as `SUPABASE_DATABASE_URL`.
+- Switched from Supabase to Neon as the recommended Postgres provider for FastAPI Cloud deployments. Neon is serverless-native with built-in connection pooling; its compute can scale to zero after inactivity and wake on the next connection.

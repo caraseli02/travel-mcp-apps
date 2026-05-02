@@ -119,7 +119,7 @@ def test_tool_returns_mcp_error_for_store_connection_failure(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     def fail_store():
-        raise RuntimeError("could not connect to Supabase")
+        raise RuntimeError("could not connect to Postgres")
 
     monkeypatch.setattr(travel_agent_server, "get_trip_store", fail_store)
 
@@ -127,7 +127,7 @@ def test_tool_returns_mcp_error_for_store_connection_failure(
 
     assert result.isError is True
     assert result.structuredContent == {
-        "error": "Trip persistence failed: could not connect to Supabase"
+        "error": "Trip persistence failed: could not connect to Postgres"
     }
 
 
