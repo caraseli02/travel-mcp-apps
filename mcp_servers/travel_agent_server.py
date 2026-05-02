@@ -21,6 +21,7 @@ from mcp_servers.weather_server import (
     get_forecast as weather_get_forecast,
 )
 from services.trips import (
+    FileTripStore,
     PostgresTripStore,
     TripConfigError,
     TripNotFoundError,
@@ -33,7 +34,7 @@ from services.trips import (
 )
 
 WIDGETS_DIR = Path(__file__).resolve().parent / "widgets"
-_STORE: PostgresTripStore | None = None
+_STORE: PostgresTripStore | FileTripStore | None = None
 
 
 def local_transport_security() -> TransportSecuritySettings | None:
@@ -51,10 +52,17 @@ server = FastMCP(
 )
 
 
-def get_trip_store() -> PostgresTripStore:
+def get_trip_store() -> PostgresTripStore | FileTripStore:
     global _STORE
     if _STORE is None:
-        _STORE = PostgresTripStore(get_settings().trip_database_url)
+        settings = get_settings()
+        backend = settings.trip_store_backend.strip().lower()
+        if backend == "file":
+            _STORE = FileTripStore(settings.trip_store_file_path)
+        elif backend == "postgres":
+            _STORE = PostgresTripStore(settings.trip_database_url)
+        else:
+            raise TripConfigError("TRIP_STORE_BACKEND must be either 'postgres' or 'file'.")
     return _STORE
 
 

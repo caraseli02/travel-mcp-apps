@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+import json
+from pathlib import Path
 import re
+import threading
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from typing import Any
 from uuid import uuid4
@@ -551,3 +554,82 @@ class InMemoryTripStore:
         )
         self.items[item_id] = updated
         return updated
+
+
+class FileTripStore(InMemoryTripStore):
+    def __init__(self, file_path: str) -> None:
+        super().__init__()
+        if not file_path.strip():
+            raise TripConfigError("TRIP_STORE_FILE_PATH is required for file trip persistence.")
+        path = Path(file_path).expanduser()
+        self._file_path = path
+        self._lock = threading.RLock()
+        self._load()
+
+    def _load(self) -> None:
+        with self._lock:
+            if not self._file_path.exists():
+                return
+            try:
+                data = json.loads(self._file_path.read_text(encoding="utf-8"))
+                self.trips = {
+                    trip["id"]: Trip(**trip)
+                    for trip in data.get("trips", [])
+                    if isinstance(trip, dict) and trip.get("id")
+                }
+                self.items = {
+                    item["id"]: TripItem(**item)
+                    for item in data.get("items", [])
+                    if isinstance(item, dict) and item.get("id")
+                }
+            except (OSError, TypeError, ValueError) as exc:
+                raise TripConfigError(
+                    f"Could not load file trip store at {self._file_path}: {exc}"
+                ) from exc
+
+    def _save(self) -> None:
+        with self._lock:
+            self._file_path.parent.mkdir(parents=True, exist_ok=True)
+            payload = {
+                "trips": [trip_to_dict(trip) for trip in self.trips.values()],
+                "items": [item_to_dict(item) for item in self.items.values()],
+            }
+            temp_path = self._file_path.with_suffix(f"{self._file_path.suffix}.tmp")
+            try:
+                temp_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+                temp_path.replace(self._file_path)
+            except OSError as exc:
+                raise TripStoreError(
+                    f"Could not save file trip store at {self._file_path}: {exc}"
+                ) from exc
+
+    def create_trip(
+        self,
+        title: str,
+        destination: str | None = None,
+        start_date: str | None = None,
+        end_date: str | None = None,
+    ) -> Trip:
+        with self._lock:
+            trip = super().create_trip(title, destination, start_date, end_date)
+            self._save()
+            return trip
+
+    def add_item(self, trip_id: str, raw_content: str, **kwargs: Any) -> tuple[TripItem, bool]:
+        with self._lock:
+            item, deduped = super().add_item(trip_id, raw_content, **kwargs)
+            if not deduped:
+                self._save()
+            return item, deduped
+
+    def update_item_status(
+        self,
+        item_id: str,
+        status: str,
+        day_label: str | None = None,
+        notes: str | None = None,
+    ) -> TripItem:
+        with self._lock:
+            item = super().update_item_status(item_id, status, day_label, notes)
+            self._save()
+            return item

@@ -26,10 +26,15 @@ Local MCP endpoints mounted in the FastAPI app:
 - Packing: http://localhost:8000/mcp/packing/
 - Unified travel agent: http://localhost:8000/mcp/travel-agent/
 
-Trip Inbox and Trip Board tools require Supabase Postgres through `DATABASE_URL`.
+Trip Inbox and Trip Board tools use Postgres through `DATABASE_URL` by default.
 If the FastAPI Cloud Supabase integration was connected with a custom variable
 name, `SUPABASE_DATABASE_URL` also works. The MCP tool returns a setup error if
-neither value is present, instead of silently creating local state.
+neither value is present.
+
+For temporary GPT Apps testing without an external database, set
+`TRIP_STORE_BACKEND=file`. This stores trips in `TRIP_STORE_FILE_PATH`, which
+defaults to `/tmp/travel-mcp-trips.json`. Use this only for smoke testing:
+FastAPI Cloud can lose `/tmp` data on restart or redeploy.
 
 ### Deploy to FastAPI Cloud
 
@@ -61,6 +66,13 @@ If you customized the FastAPI Cloud Supabase integration variable name, set:
 
 ```bash
 fastapi cloud env set --secret SUPABASE_DATABASE_URL "postgresql://..."
+```
+
+Or use the temporary file store while testing GPT Apps:
+
+```bash
+fastapi cloud env set TRIP_STORE_BACKEND "file"
+fastapi cloud env set TRIP_STORE_FILE_PATH "/tmp/travel-mcp-trips.json"
 ```
 
 Environment variable changes apply on the next deployment.
