@@ -3,6 +3,7 @@ import os
 import pytest
 
 from services.trips import (
+    FileTripStore,
     InMemoryTripStore,
     TripConfigError,
     TripNotFoundError,
@@ -69,6 +70,42 @@ def test_store_creates_trip_and_dedupes_items_by_normalized_raw_content() -> Non
     assert second.id == first.id
     assert first.item_type == "hotel"
     assert store.list_items(trip.id, "inbox") == [first]
+
+
+def test_file_store_persists_trip_items_across_store_instances(tmp_path) -> None:
+    path = tmp_path / "trips.json"
+    store = FileTripStore(str(path))
+    trip = store.create_trip("Tokyo", destination="Tokyo")
+    item, deduped = store.add_item(
+        trip.id,
+        "https://booking.com/hotel/example/",
+        source_label="Booking",
+        title="Hotel example",
+    )
+    store.update_item_status(item.id, "shortlisted", day_label="Day 1")
+
+    reloaded = FileTripStore(str(path))
+    duplicate, duplicate_deduped = reloaded.add_item(trip.id, "booking.com/hotel/example")
+
+    assert deduped is False
+    assert duplicate_deduped is True
+    assert duplicate.id == item.id
+    assert reloaded.get_trip(trip.id).destination == "Tokyo"
+    assert reloaded.list_items(trip.id, "shortlisted")[0].day_label == "Day 1"
+
+
+def test_file_store_refreshes_stale_instances_before_operations(tmp_path) -> None:
+    path = tmp_path / "trips.json"
+    first_worker = FileTripStore(str(path))
+    second_worker = FileTripStore(str(path))
+
+    trip = first_worker.create_trip("Tokyo", destination="Tokyo")
+    item, deduped = second_worker.add_item(trip.id, "https://example.com/hotel")
+    second_trip = second_worker.create_trip("Osaka", destination="Osaka")
+
+    assert deduped is False
+    assert item.trip_id == trip.id
+    assert first_worker.get_trip(second_trip.id).destination == "Osaka"
 
 
 def test_store_rejects_empty_trip_title_and_content() -> None:

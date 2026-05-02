@@ -14,4 +14,4 @@ All notable changes to this project are documented here.
 ### Changed
 
 - Documented the new `DATABASE_URL` deployment secret and regenerated the dependency lockfile with `psycopg` pool support.
-- Switched from Supabase to Neon as the recommended Postgres provider for FastAPI Cloud deployments. Neon is serverless-native with built-in connection pooling and does not auto-pause on inactivity.
+- Switched from Supabase to Neon as the recommended Postgres provider for FastAPI Cloud deployments. Neon is serverless-native with built-in connection pooling; its compute can scale to zero after inactivity and wake on the next connection.

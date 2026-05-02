@@ -29,7 +29,13 @@ Local MCP endpoints mounted in the FastAPI app:
 Trip Inbox and Trip Board tools require a Postgres database through `DATABASE_URL`.
 The recommended setup is [Neon](https://neon.tech) via the FastAPI Cloud integration
 (Storage → Connect Neon), which sets `DATABASE_URL` automatically.
+If you customize the integration variable name, `NEON_DATABASE_URL` also works.
 The MCP tool returns a setup error if no database is configured.
+
+For temporary GPT Apps testing without an external database, set
+`TRIP_STORE_BACKEND=file`. This stores trips in `TRIP_STORE_FILE_PATH`, which
+defaults to `/tmp/travel-mcp-trips.json`. Use this only for smoke testing:
+FastAPI Cloud can lose `/tmp` data on restart or redeploy.
 
 ### Deploy to FastAPI Cloud
 
@@ -62,6 +68,19 @@ Or set it manually:
 
 ```bash
 fastapi cloud env set --secret DATABASE_URL "postgresql://..."
+```
+
+If you customized the FastAPI Cloud Neon integration variable name, set:
+
+```bash
+fastapi cloud env set --secret NEON_DATABASE_URL "postgresql://..."
+```
+
+Or use the temporary file store while testing GPT Apps:
+
+```bash
+fastapi cloud env set TRIP_STORE_BACKEND "file"
+fastapi cloud env set TRIP_STORE_FILE_PATH "/tmp/travel-mcp-trips.json"
 ```
 
 Environment variable changes apply on the next deployment.
