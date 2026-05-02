@@ -1,7 +1,7 @@
 import pytest
 
 from mcp_servers import travel_agent_server
-from services.trips import InMemoryTripStore
+from services.trips import FileTripStore, InMemoryTripStore
 
 
 @pytest.fixture()
@@ -81,13 +81,38 @@ def test_tool_returns_clear_error_when_database_url_missing(monkeypatch: pytest.
     monkeypatch.setattr(
         travel_agent_server,
         "get_settings",
-        lambda: type("Settings", (), {"trip_database_url": ""})(),
+        lambda: type("Settings", (), {"trip_store_backend": "postgres", "trip_database_url": ""})(),
     )
 
     result = travel_agent_server.create_trip("Rome")
 
     assert result.isError is True
     assert result.structuredContent == {"error": "DATABASE_URL is required for trip persistence."}
+
+
+def test_tool_uses_file_store_backend_when_configured(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path,
+) -> None:
+    monkeypatch.setattr(travel_agent_server, "_STORE", None)
+    monkeypatch.setattr(
+        travel_agent_server,
+        "get_settings",
+        lambda: type(
+            "Settings",
+            (),
+            {
+                "trip_store_backend": "file",
+                "trip_store_file_path": str(tmp_path / "trips.json"),
+                "trip_database_url": "",
+            },
+        )(),
+    )
+
+    result = travel_agent_server.create_trip("Rome")
+
+    assert result.isError is not True
+    assert isinstance(travel_agent_server.get_trip_store(), FileTripStore)
 
 
 def test_tool_returns_mcp_error_for_store_connection_failure(
