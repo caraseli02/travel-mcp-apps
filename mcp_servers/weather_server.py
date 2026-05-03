@@ -66,7 +66,11 @@ async def get_current_weather(city: str) -> CallToolResult:
 
 @server.tool(
     name="get_forecast",
-    description="Get 5-day weather forecast for a city and render it in the forecast chart",
+    description=(
+        "Get 5-day weather forecast for a city. "
+        "NOTE: This returns the forecast for the next 5 days from today, NOT future trip dates. "
+        "For trips further out, use climate averages or historical data for the destination month."
+    ),
     meta={
         "ui": {"resourceUri": "ui://weather/forecast-chart-v1.html"},
         "openai/outputTemplate": "ui://weather/forecast-chart-v1.html",
@@ -80,7 +84,11 @@ async def get_forecast(city: str, days: int = 5) -> CallToolResult:
             content=[
                 TextContent(
                     type="text",
-                    text=f"Showing {days}-day forecast for {data.get('city', city)}.",
+                    text=(
+                        f"Showing {days}-day forecast for {data.get('city', city)}. "
+                        f"Note: this covers the next {days} days from today. "
+                        f"For future trip dates, ask about climate averages for that month."
+                    ),
                 )
             ],
             _meta={},

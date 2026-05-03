@@ -4,8 +4,10 @@ from typing import Any
 from sample_data.weather_forecasts import SAMPLE_WEATHER_FORECASTS
 
 PACKING_TEMPLATES = {
-    "cold": ["Heavy coat", "Gloves", "Scarf", "Thermal underwear"],
-    "mild": ["Light jacket", "Long pants", "Comfortable shoes"],
+    "freezing": ["Heavy winter coat", "Gloves", "Scarf", "Thermal underwear", "Warm boots"],
+    "cold": ["Warm jacket", "Sweaters", "Long pants", "Closed shoes"],
+    "cool": ["Light jacket or sweater", "Long pants", "Layered clothing"],
+    "mild": ["Light layers", "Long-sleeve shirts", "Comfortable pants"],
     "warm": ["T-shirts", "Shorts", "Sunscreen", "Sunglasses"],
     "hot": ["Light clothing", "Sandals", "High SPF sunscreen", "Water bottle"],
 }
@@ -48,8 +50,12 @@ def summarize_forecast(forecast_data: dict[str, Any]) -> dict[str, Any]:
     max_temp = max(highs)
     max_precipitation = max(precipitation)
 
-    if min_temp < 10:
+    if min_temp < 0:
+        category = "freezing"
+    elif min_temp < 5:
         category = "cold"
+    elif min_temp < 12:
+        category = "cool"
     elif max_temp > 30:
         category = "hot"
     elif max_temp >= 20:

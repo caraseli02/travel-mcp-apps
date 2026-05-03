@@ -6,11 +6,12 @@ from services.packing import build_packing_list
 def test_build_packing_list_adds_cold_weather_items() -> None:
     result = build_packing_list("Reykjavik", 4, sample_weather_forecast_json("cold"))
 
-    assert "Heavy coat" in result["categories"]["clothing"]
+    # cold sample has min_temp=-4 which is now "freezing" category
+    assert "Heavy winter coat" in result["categories"]["clothing"]
     assert "Gloves" in result["categories"]["clothing"]
     assert "Scarf" in result["categories"]["clothing"]
     assert "Thermal underwear" in result["categories"]["clothing"]
-    assert result["weather_summary"]["weather_category"] == "cold"
+    assert result["weather_summary"]["weather_category"] == "freezing"
 
 
 def test_build_packing_list_adds_rain_gear() -> None:
