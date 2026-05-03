@@ -1,14 +1,14 @@
 # ChatGPT Apps Readiness Review
 
-Date: 2026-04-29
+Date: 2026-05-03
 
 ## Current Classification
 
 Primary archetype: `submission-ready`, eventually.
 
-Current stage: MCP foundation with Apps-aware resources for weather, packing, travel tips, Trip Inbox, and Trip Board.
+Current stage: hosted-runtime validation pending. The MCP foundation, Apps-aware resources, unified travel-agent endpoint, and Trip Inbox / Trip Board persistence path exist locally.
 
-The repo now has local Streamable HTTP MCP servers, working tool descriptors, and a first weather widget resource. It is not yet a fully validated ChatGPT app because widget bridge behavior still needs to be tested in a runtime that provides `window.openai` or the MCP Apps bridge.
+The repo now has local Streamable HTTP MCP servers, mounted FastAPI MCP endpoints, working tool descriptors, and first-pass widgets for weather, packing, travel tips, Trip Inbox, and Trip Board. It is not yet a fully validated ChatGPT app because widget bridge behavior still needs to be tested in ChatGPT Developer Mode against a public HTTPS endpoint.
 
 ## What Is On The Correct Path
 
@@ -16,9 +16,10 @@ The repo now has local Streamable HTTP MCP servers, working tool descriptors, an
 - `pyproject.toml` has the FastAPI Cloud entrypoint: `app.main:app`.
 - Dependencies include `mcp`, `aiohttp`, `pydantic-settings`, and `fastapi[standard]`.
 - Runtime config is environment-based and keeps `OPENWEATHER_API_KEY` out of source.
-- Health, placeholder travel API endpoints, and the unified `/mcp/travel-agent/` MCP endpoint exist.
+- Health, travel API orchestration, and the unified `/mcp/travel-agent/` MCP endpoint exist.
 - Tests exist and pass.
 - The learning roadmap keeps MCP implementation as your work, with hints and references.
+- The gstack `/office-hours` product direction is now captured in `docs/office_hours_trip_inbox_board_2026-04-30.md`.
 
 ## Current Gaps Before A ChatGPT App Can Work End-To-End
 
@@ -66,12 +67,13 @@ Each tool should have:
 - `content` for model-readable narration
 - `_meta` for widget-only details
 
-Current weather status:
+Current implementation status:
 
 - `get_current_weather` returns a real `CallToolResult` with top-level `structuredContent`.
 - The weather UI resource is versioned as `ui://weather/dashboard-v4.html`.
-- The weather resource uses MIME type `text/html;profile=mcp-app`.
+- Weather, forecast, packing, destination guide, activity cards, Trip Inbox, and Trip Board resources use MIME type `text/html;profile=mcp-app`.
 - `resources/read` returns resource `_meta` with UI CSP and widget description.
+- `/mcp/travel-agent/` should be the primary ChatGPT Developer Mode endpoint because it exposes the trip tools and the domain tools through one connection.
 
 ### 3. Add Widget Metadata From The Start
 
@@ -131,7 +133,7 @@ python -m pytest
 Result:
 
 ```text
-37 passed, 1 skipped
+48 passed, 1 skipped
 ```
 
 Static review:
@@ -142,6 +144,7 @@ Static review:
 - Weather `get_current_weather` returns real top-level `structuredContent`, not JSON text.
 - The weather, travel, packing, trip inbox, and trip board UI resources are readable and carry `text/html;profile=mcp-app`.
 - Kiro docs and roadmap were updated away from stale `text/html+mcp` MIME wording.
+- Trip persistence tests cover file-backed smoke testing and Postgres integration when `DATABASE_URL` is present.
 
 ## Next Correct Step
 

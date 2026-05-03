@@ -1,6 +1,6 @@
 # travel-mcp-app
 
-Learning-by-doing project for a Travel Tip Planner built with FastAPI, MCP, OpenWeather, and MCP Apps UI resources.
+Learning-by-doing project for a ChatGPT-native Travel Tip Planner built with FastAPI, MCP, OpenWeather, trip persistence, and MCP Apps UI resources.
 
 The intended deployment target is FastAPI Cloud:
 
@@ -26,7 +26,8 @@ Local MCP endpoints mounted in the FastAPI app:
 - Packing: http://localhost:8000/mcp/packing/
 - Unified travel agent: http://localhost:8000/mcp/travel-agent/
 
-Trip Inbox and Trip Board tools require a Postgres database through `DATABASE_URL`.
+Trip Inbox and Trip Board tools require persistent storage. The production path is
+Postgres through `DATABASE_URL`.
 The recommended setup is [Neon](https://neon.tech) via the FastAPI Cloud integration
 (Storage → Connect Neon), which sets `DATABASE_URL` automatically.
 If you customize the integration variable name, `NEON_DATABASE_URL` also works.
@@ -90,7 +91,7 @@ Environment variable changes apply on the next deployment.
 - `app/main.py` - FastAPI application factory and app instance
 - `app/config.py` - environment-based settings
 - `app/routers/health.py` - health and MCP readiness endpoints
-- `app/routers/travel.py` - travel API endpoint placeholder for later MCP orchestration
+- `app/routers/travel.py` - travel API endpoint that orchestrates weather, travel tips, and packing through MCP clients
 - `services/trips.py` - Postgres-backed Trip and TripItem persistence for the unified travel agent
 - `mcp_servers/travel_agent_server.py` - unified MCP endpoint with weather, travel, packing, Trip Inbox, and Trip Board tools
 - `main.py` - compatibility import for `app.main:app`
@@ -100,6 +101,7 @@ Environment variable changes apply on the next deployment.
 - `tests/` - API test scaffold
 - `docs/chatgpt_apps_readiness_review.md` - ChatGPT Apps publication-readiness review
 - `docs/testing_chatgpt_apps.md` - MCP protocol and ChatGPT Apps widget bridge testing guide
+- `docs/office_hours_trip_inbox_board_2026-04-30.md` - repo-tracked copy of the gstack `/office-hours` product direction
 - `todos/001-ready-p1-mcp-learning-roadmap.md` - detailed MCP learning todo list with hints and references
 - `.kiro/specs/mcp-travel-planner-ui/` - Requirements and design notes for the MCP learning project
 

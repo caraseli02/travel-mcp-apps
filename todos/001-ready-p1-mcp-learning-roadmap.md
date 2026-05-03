@@ -235,7 +235,7 @@ Acceptance criteria:
 - [x] Wire the clients into `app/routers/travel.py`.
 
 Hints:
-- Current FastAPI placeholder lives in `app/routers/travel.py`.
+- Current FastAPI travel orchestration lives in `app/routers/travel.py`.
 - Settings are already available from `app/config.py`.
 - Do not overbuild the client. Start with one method per server tool.
 - Add timeouts and friendly errors before adding more features.
@@ -290,8 +290,36 @@ Mounted FastAPI MCP endpoints:
 - Weather: `/mcp/weather/`
 - Travel tips: `/mcp/travel/`
 - Packing: `/mcp/packing/`
+- Unified travel agent: `/mcp/travel-agent/`
 
-### Phase 8: FastAPI Cloud Deployment
+### Phase 7.5: Office-Hours Product Pivot - Complete
+
+- [x] Run `/office-hours` for the next product direction.
+- [x] Preserve the gstack design doc in repo docs.
+- [x] Add Trip Inbox and Trip Board widgets.
+- [x] Add persistent trip state.
+- [x] Expose trip tools through a unified travel-agent MCP endpoint.
+- [x] Keep weather, travel tips, activities, and packing available through the same unified endpoint.
+
+Original gstack artifact:
+
+```text
+/Users/vladislavcaraseli/.gstack/projects/caraseli02-travel-mcp-apps/vladislavcaraseli-main-design-20260430-150714.md
+```
+
+Repo copy:
+
+```text
+docs/office_hours_trip_inbox_board_2026-04-30.md
+```
+
+Plan changes:
+
+- The original office-hours doc suggested SQLite first. Current code uses Postgres through `DATABASE_URL`, with `TRIP_STORE_BACKEND=file` for temporary smoke testing.
+- The original office-hours doc suggested a future `/mcp/trips` endpoint. Current code uses `/mcp/travel-agent/` as the primary ChatGPT endpoint.
+- The original three-server learning plan remains useful for local debugging, but ChatGPT Developer Mode should use the unified endpoint.
+
+### Phase 8: FastAPI Cloud Deployment And Developer Mode Validation
 
 - [x] Run local tests.
 - [x] Mount MCP servers into the FastAPI app.
@@ -300,10 +328,13 @@ Mounted FastAPI MCP endpoints:
 - [ ] Login with `fastapi login`.
 - [ ] Deploy with `fastapi deploy`.
 - [ ] Set `OPENWEATHER_API_KEY` as a secret.
+- [ ] Set `DATABASE_URL` through the Neon integration, or set `TRIP_STORE_BACKEND=file` only for temporary smoke testing.
 - [ ] Redeploy.
 - [ ] Test remote `/health`.
 - [ ] Test remote `/docs`.
-- [ ] Test remote MCP HTTP endpoints after you implement them.
+- [ ] Test remote `/mcp/travel-agent/`.
+- [ ] Connect `/mcp/travel-agent/` in ChatGPT Developer Mode.
+- [ ] Validate Trip Inbox, Trip Board, weather, destination tips, activity recommendations, and packing from one ChatGPT MCP connection.
 
 Hints:
 - Deployment docs are now in `README.md`.
@@ -313,7 +344,26 @@ Hints:
 Acceptance criteria:
 - Remote `/health` returns `healthy`.
 - Remote docs page loads.
+- Remote `/mcp/travel-agent/` is reachable over public HTTPS.
+- ChatGPT Developer Mode renders Trip Inbox and Trip Board widgets with real tool output.
 - Secrets are configured in FastAPI Cloud, not committed to files.
+
+### Phase 9: Real Trip Dogfood
+
+- [ ] Create one real trip workspace.
+- [ ] Save at least 10 messy travel fragments into Trip Inbox.
+- [ ] Move items through `shortlisted`, `booked`, `rejected`, and `needs_review`.
+- [ ] Use Trip Board to identify missing pieces.
+- [ ] Ask ChatGPT to compare at least two saved options.
+- [ ] Generate a draft itinerary from saved board items.
+- [ ] Use weather and packing from the same trip context.
+- [ ] Log awkward moments and product gaps before adding new features.
+
+Acceptance criteria:
+
+- The product helps preserve real planning state, not just demo data.
+- The board stays understandable after 10+ fragments.
+- Next feature decisions come from dogfood friction.
 
 ## Work Log
 
@@ -482,3 +532,32 @@ Acceptance criteria:
 - Returning a plain Python `dict` from FastMCP can be serialized as text content. Use `mcp.types.CallToolResult` when the tool must return top-level `structuredContent`.
 - MCP Inspector-style tool calls can prove the server contract, but they do not always prove ChatGPT Apps widget bridge behavior.
 - Phase 7 should pause broad widget work until one bridge-aware runtime path is confirmed.
+
+### 2026-04-30 - Office Hours Product Direction
+
+**By:** Developer + gstack `/office-hours`
+
+**Actions:**
+- Created the ChatGPT-native Trip Inbox + Trip Board design direction.
+- Reframed the first product job from itinerary generation to preserving messy planning work.
+- Selected Inbox + Board as the smallest useful wedge.
+- Saved the original gstack artifact outside the repo under `~/.gstack/projects/caraseli02-travel-mcp-apps/`.
+- Added a repo-tracked copy at `docs/office_hours_trip_inbox_board_2026-04-30.md`.
+
+**Learnings:**
+- Capture alone is too weak; board alone misses the messy input problem.
+- The durable trip object is the product center.
+- ChatGPT should connect to one unified MCP endpoint, not three separate domain-only endpoints.
+
+### 2026-05-03 - Current State Reconciled
+
+**By:** Codex
+
+**Actions:**
+- Compared the office-hours design doc, roadmap, README, readiness review, and current code.
+- Confirmed the current implementation includes a unified `/mcp/travel-agent/` endpoint, Postgres-backed trip persistence, file-backed smoke testing, Trip Inbox, and Trip Board.
+- Updated docs to reflect `48 passed, 1 skipped`.
+
+**Learnings:**
+- The next useful work is hosted ChatGPT Developer Mode validation, not another product brainstorm.
+- Re-run `/office-hours` only when the product wedge changes materially.
