@@ -9,7 +9,7 @@ Do not treat them as the same thing. The MCP Inspector can prove that tools, res
 
 ## Current Apps Widget Status
 
-Current Phase 7 widget resources:
+Current widget resources:
 
 - MIME type: `text/html;profile=mcp-app`
 
@@ -118,6 +118,8 @@ output in ChatGPT Developer Mode:
 - `generate_packing_list` renders `ui://packing/checklist-v1.html`.
 - `get_destination_tips` renders `ui://travel/destination-guide-v1.html`.
 - `recommend_activities` renders `ui://travel/activity-cards-v1.html`.
+- `add_trip_item` and `list_trip_inbox` render `ui://trip/inbox-v1.html`.
+- `get_trip_board` renders `ui://trip/board-v1.html`.
 
 ## ChatGPT Developer Mode Path
 
@@ -192,6 +194,34 @@ Recommended local steps:
    ```
 
 6. Expected result: ChatGPT calls the matching tool and renders the associated widget.
+
+## Hosted Validation Path
+
+For the current product direction, prefer the mounted FastAPI endpoint:
+
+```text
+https://your-fastapi-cloud-domain.example/mcp/travel-agent/
+```
+
+Required environment:
+
+- `OPENWEATHER_API_KEY` for real weather.
+- `DATABASE_URL` or `NEON_DATABASE_URL` for durable Trip Inbox and Trip Board storage.
+- `TRIP_STORE_BACKEND=file` only for temporary smoke tests where losing `/tmp` data is acceptable.
+
+Minimum Developer Mode script:
+
+```text
+Create a Tokyo trip.
+Save this hotel option to the Tokyo trip: Booking.com hotel near Shibuya, about $180/night.
+Show my trip inbox.
+Move the hotel to shortlisted.
+Show my trip board.
+Get the current weather for Tokyo.
+Generate a packing list for a 5-day Tokyo trip using that forecast.
+```
+
+Pass condition: ChatGPT calls the unified endpoint, renders the Trip Inbox and Trip Board widgets, and can call weather and packing tools without connecting separate MCP apps.
 
 ## What Not To Change Yet
 
