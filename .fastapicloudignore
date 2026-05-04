@@ -8,3 +8,8 @@ __pycache__/
 tests/
 sprint_4_*.md
 .kiro/
+.claude/
+.codex/
+.agents/
+.gstack/
+docs/plans/
