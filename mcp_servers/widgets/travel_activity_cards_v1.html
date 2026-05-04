@@ -224,6 +224,119 @@
           justify-self: start;
         }
       }
+
+      /* ChatGPT-native v4 surface pass */
+      :root {
+        --ink: #171412;
+        --muted: #6f6a64;
+        --surface: #ffffff;
+        --soft: #fbfbfb;
+        --line: #e8e3dc;
+        --accent: #9a4f2f;
+        --accent-soft: #fff3ec;
+        --danger: #a03a2b;
+      }
+
+      body {
+        color: var(--ink);
+        background: Canvas;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+        overflow-x: hidden;
+      }
+
+      .cards {
+        min-height: 0;
+        padding: 14px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .empty,
+      .error {
+        min-height: 236px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--soft);
+      }
+
+      .empty::before {
+        display: none;
+      }
+
+      .content {
+        gap: 12px;
+      }
+
+      .header {
+        gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        color: #9b948c;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+      }
+
+      .eyebrow::before {
+        display: none;
+      }
+
+      h1 {
+        color: var(--ink);
+        font-size: 19px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .context,
+      .summary,
+      .description,
+      .meta {
+        color: var(--muted);
+      }
+
+      .activity {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 7px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+      }
+
+      .activity + .activity {
+        margin-top: 8px;
+      }
+
+      .activity:first-child {
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      .activity-head {
+        min-width: 0;
+      }
+
+      .activity-name {
+        color: var(--ink);
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+
+      .badge {
+        min-height: 20px;
+        background: var(--accent-soft);
+        color: #73351e;
+        font-weight: 620;
+      }
+
+      .cue {
+        color: var(--accent);
+      }
     </style>
   </head>
   <body>
