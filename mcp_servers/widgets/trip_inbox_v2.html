@@ -132,11 +132,18 @@
 
       .item {
         display: grid;
-        gap: 8px;
-        padding: 12px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 4px 10px;
+        padding: 10px 0;
+        border: 0;
+        border-top: 1px solid var(--line);
+        border-radius: 0;
         background: #fff;
+      }
+
+      .item:first-child {
+        border-top: 0;
+        padding-top: 0;
       }
 
       .item-head {
@@ -144,6 +151,9 @@
         flex-wrap: wrap;
         gap: 8px;
         align-items: center;
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        justify-self: end;
       }
 
       .badge,
@@ -173,7 +183,7 @@
 
       .title {
         margin: 0;
-        font-size: 15px;
+        font-size: 14px;
         font-weight: 750;
         line-height: 1.25;
         overflow-wrap: anywhere;
@@ -183,10 +193,14 @@
       .notes {
         margin: 0;
         color: #344054;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 500;
         line-height: 1.38;
         overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
 
       .notes {
@@ -210,6 +224,16 @@
         .count {
           justify-self: start;
           text-align: left;
+        }
+
+        .item {
+          grid-template-columns: 1fr;
+        }
+
+        .item-head {
+          grid-column: auto;
+          grid-row: auto;
+          justify-self: start;
         }
       }
 
@@ -241,6 +265,8 @@
         padding: 14px;
         background: var(--surface);
         overflow: hidden;
+        max-width: 720px;
+        margin: 0 auto;
       }
 
       .empty,
@@ -293,10 +319,15 @@
       }
 
       .item {
-        padding: 12px;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        background: var(--surface);
+        padding: 10px 0;
+        border: 0;
+        border-top: 1px solid var(--line);
+        border-radius: 0;
+        background: transparent;
+      }
+
+      .item:first-child {
+        border-top: 0;
       }
 
       .badge {

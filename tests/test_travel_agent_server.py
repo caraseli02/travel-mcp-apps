@@ -70,17 +70,82 @@ def test_itinerary_tool_groups_items_by_day(trip_store: InMemoryTripStore) -> No
     activity = travel_agent_server.add_trip_item(
         trip.id,
         "Colosseum tour",
-        day_label="Day 1",
+        day_label="Day 1 morning",
         title="Colosseum Tour",
     ).structuredContent["item"]
+    dinner = travel_agent_server.add_trip_item(
+        trip.id,
+        "Dinner in Trastevere",
+        day_label="Day 1 evening",
+        title="Dinner",
+    ).structuredContent["item"]
     travel_agent_server.update_trip_item_status(activity["id"], "shortlisted")
+    travel_agent_server.update_trip_item_status(dinner["id"], "shortlisted")
 
     result = travel_agent_server.get_trip_itinerary(trip.id)
 
     assert result.isError is not True
     assert result.structuredContent["days"][0]["label"] == "Day 1"
     assert result.structuredContent["days"][0]["items"][0]["id"] == activity["id"]
-    assert result.structuredContent["counts"]["scheduled"] == 1
+    assert result.structuredContent["days"][0]["items"][0]["schedule_label"] == "Morning"
+    assert result.structuredContent["days"][0]["items"][1]["id"] == dinner["id"]
+    assert result.structuredContent["counts"]["scheduled"] == 2
+
+
+def test_budget_tool_tracks_priced_items_and_target(trip_store: InMemoryTripStore) -> None:
+    trip = trip_store.create_trip("Rome")
+    flight = travel_agent_server.add_trip_item(
+        trip.id,
+        "Ryanair BCN-FCO May 25, EUR 47/person",
+        title="Ryanair BCN-FCO",
+    ).structuredContent["item"]
+    hotel = travel_agent_server.add_trip_item(
+        trip.id,
+        "Hotel Lancelot near Termini, EUR 95/night",
+        title="Hotel Lancelot",
+    ).structuredContent["item"]
+    travel_agent_server.add_trip_item(trip.id, "Budget target EUR 1500", item_type="constraint")
+    travel_agent_server.update_trip_item_status(flight["id"], "shortlisted")
+    travel_agent_server.update_trip_item_status(hotel["id"], "shortlisted")
+
+    result = travel_agent_server.get_trip_budget(trip.id)
+
+    assert result.isError is not True
+    assert result.structuredContent["target"] == 1500
+    assert result.structuredContent["spent"] == 142
+    assert result.structuredContent["remaining"] == 1358
+    assert result.structuredContent["counts"]["priced_items"] == 2
+
+
+def test_budget_tool_applies_party_and_nightly_multipliers(
+    trip_store: InMemoryTripStore,
+) -> None:
+    trip = trip_store.create_trip(
+        "Rome",
+        destination="Rome",
+        start_date="2026-05-25",
+        end_date="2026-06-01",
+    )
+    travel_agent_server.add_trip_item(trip.id, "Plan for 2 adults and 1 kid")
+    flight = travel_agent_server.add_trip_item(
+        trip.id,
+        "Ryanair BCN-FCO EUR 47/person",
+        title="Ryanair BCN-FCO",
+    ).structuredContent["item"]
+    hotel = travel_agent_server.add_trip_item(
+        trip.id,
+        "Hotel Lancelot EUR 95/night",
+        title="Hotel Lancelot",
+    ).structuredContent["item"]
+    travel_agent_server.update_trip_item_status(flight["id"], "shortlisted")
+    travel_agent_server.update_trip_item_status(hotel["id"], "shortlisted")
+
+    result = travel_agent_server.get_trip_budget(trip.id)
+
+    assert result.isError is not True
+    assert result.structuredContent["spent"] == 806
+    assert result.structuredContent["counts"]["party_size"] == 3
+    assert result.structuredContent["counts"]["nights"] == 7
 
 
 def test_trip_summary_reports_counts_and_missing_pieces(trip_store: InMemoryTripStore) -> None:
@@ -154,6 +219,7 @@ def test_unified_server_registers_every_tool_output_template() -> None:
         "ui://trip/inbox-v2.html": travel_agent_server.trip_inbox_ui,
         "ui://trip/board-v2.html": travel_agent_server.trip_board_ui,
         "ui://trip/itinerary-v1.html": travel_agent_server.trip_itinerary_ui,
+        "ui://trip/budget-v1.html": travel_agent_server.trip_budget_ui,
         "ui://weather/dashboard-v5.html": travel_agent_server.weather_dashboard_ui,
         "ui://weather/forecast-chart-v2.html": travel_agent_server.weather_forecast_chart_ui,
         "ui://packing/checklist-v2.html": travel_agent_server.packing_checklist_ui,

@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 import sys
-from typing import Any, Callable
+from typing import Callable
 
 if __package__ is None or __package__ == "":
     sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -28,6 +28,7 @@ from services.trips import (
     TripStoreError,
     TripValidationError,
     build_board,
+    build_budget,
     build_itinerary,
     item_to_dict,
     summarize_items,
@@ -247,6 +248,28 @@ def get_trip_itinerary(trip_id: str) -> CallToolResult:
         return CallToolResult(
             structuredContent=itinerary,
             content=_text(f"Showing day-by-day itinerary for {trip.title}."),
+            _meta={},
+        )
+
+    return _run_trip_tool(action)
+
+
+@server.tool(
+    name="get_trip_budget",
+    description="Show tracked trip spending against any saved budget target.",
+    meta={
+        "ui": {"resourceUri": "ui://trip/budget-v1.html"},
+        "openai/outputTemplate": "ui://trip/budget-v1.html",
+    },
+)
+def get_trip_budget(trip_id: str) -> CallToolResult:
+    def action() -> CallToolResult:
+        store = get_trip_store()
+        trip = store.get_trip(trip_id)
+        budget = build_budget(trip, store.list_items(trip_id))
+        return CallToolResult(
+            structuredContent=budget,
+            content=_text(f"Showing spending tracker for {trip.title}."),
             _meta={},
         )
 
@@ -501,6 +524,26 @@ def trip_board_ui() -> str:
 )
 def trip_itinerary_ui() -> str:
     return (WIDGETS_DIR / "trip_itinerary_v1.html").read_text(encoding="utf-8")
+
+
+@server.resource(
+    "ui://trip/budget-v1.html",
+    name="trip_budget_ui",
+    description="Trip spending tracker UI",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {
+            "prefersBorder": True,
+            "csp": {
+                "connectDomains": [],
+                "resourceDomains": [],
+            },
+        },
+        "openai/widgetDescription": "Shows tracked trip spending against a saved budget target.",
+    },
+)
+def trip_budget_ui() -> str:
+    return (WIDGETS_DIR / "trip_budget_v1.html").read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":

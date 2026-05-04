@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #ffffff;
+        --surface: #fbfbfb;
+        --line: #e8e3dc;
+        --text: #171412;
+        --muted: #6f6a64;
+        --soft: #9b948c;
+        --accent: #9a4f2f;
+        --accent-soft: #fff3ec;
+        --danger: #a03a2b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 280px;
+        color: var(--text);
+        background: Canvas;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+        overflow-x: hidden;
+      }
+
+      .budget {
+        min-height: 0;
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 14px;
+        background: var(--bg);
+      }
+
+      .empty,
+      .error {
+        display: grid;
+        min-height: 236px;
+        place-items: center;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+        text-align: center;
+      }
+
+      .error {
+        color: var(--danger);
+      }
+
+      .content {
+        display: grid;
+        gap: 12px;
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--soft);
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        color: var(--text);
+        font-size: 19px;
+        font-weight: 700;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .summary {
+        min-width: 112px;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+        line-height: 1.2;
+        text-align: center;
+      }
+
+      .totals {
+        display: grid;
+        gap: 8px;
+      }
+
+      .amount {
+        color: var(--text);
+        font-size: 24px;
+        font-weight: 720;
+        font-variant-numeric: tabular-nums;
+        line-height: 1.1;
+      }
+
+      .amount small {
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .remaining {
+        margin: 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .bar {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+      }
+
+      .fill {
+        height: 100%;
+        width: 0%;
+        background: var(--accent);
+        border-radius: inherit;
+      }
+
+      .rows,
+      .categories {
+        display: grid;
+        gap: 0;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        padding: 9px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .row-title {
+        margin: 0;
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 650;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+      }
+
+      .row-meta {
+        margin-top: 2px;
+        color: var(--muted);
+        font-size: 11px;
+        text-transform: capitalize;
+      }
+
+      .row-amount {
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .tag {
+        display: inline-flex;
+        min-height: 20px;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: #73351e;
+        font-size: 11px;
+        font-weight: 620;
+        text-transform: capitalize;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (max-width: 520px) {
+        .header {
+          grid-template-columns: 1fr;
+        }
+
+        .summary {
+          justify-self: start;
+          text-align: left;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="budget" aria-live="polite">
+      <section class="empty" id="empty">Waiting for budget data...</section>
+
+      <section class="content" id="content" hidden>
+        <header class="header">
+          <div>
+            <p class="eyebrow">Spending tracker</p>
+            <h1 id="tripTitle">Trip</h1>
+          </div>
+          <div class="summary" id="summary">0 priced items</div>
+        </header>
+
+        <section class="totals" aria-label="Budget total">
+          <div class="amount" id="amount"></div>
+          <div class="bar" id="bar" hidden><div class="fill" id="fill"></div></div>
+          <p class="remaining" id="remaining"></p>
+        </section>
+
+        <section class="categories" id="categories" aria-label="Category totals"></section>
+        <section class="rows" id="rows" aria-label="Tracked spending"></section>
+      </section>
+    </main>
+
+    <script>
+      const elements = {
+        empty: document.getElementById("empty"),
+        content: document.getElementById("content"),
+        tripTitle: document.getElementById("tripTitle"),
+        summary: document.getElementById("summary"),
+        amount: document.getElementById("amount"),
+        bar: document.getElementById("bar"),
+        fill: document.getElementById("fill"),
+        remaining: document.getElementById("remaining"),
+        categories: document.getElementById("categories"),
+        rows: document.getElementById("rows"),
+      };
+
+      function unwrapToolOutput(raw) {
+        return raw?.structuredContent ?? raw?.toolOutput ?? raw;
+      }
+
+      function money(value, currency) {
+        const symbol = currency === "EUR" ? "EUR" : currency || "EUR";
+        if (value === undefined || value === null) return "not set";
+        return symbol + " " + Number(value).toLocaleString(undefined, { maximumFractionDigits: 0 });
+      }
+
+      function showError(message) {
+        elements.empty.textContent = message || "Budget data is unavailable.";
+        elements.empty.className = "error";
+        elements.empty.hidden = false;
+        elements.content.hidden = true;
+      }
+
+      function renderCategories(categories, currency) {
+        elements.categories.replaceChildren();
+        (categories || []).forEach((entry) => {
+          const row = document.createElement("article");
+          row.className = "row";
+          row.innerHTML = `
+            <div><span class="tag"></span></div>
+            <div class="row-amount"></div>
+          `;
+          row.querySelector(".tag").textContent = entry.category || "item";
+          row.querySelector(".row-amount").textContent = money(entry.amount, currency);
+          elements.categories.appendChild(row);
+        });
+      }
+
+      function renderRows(rows, currency) {
+        elements.rows.replaceChildren();
+        (rows || []).slice(0, 5).forEach((entry) => {
+          const row = document.createElement("article");
+          row.className = "row";
+          row.innerHTML = `
+            <div>
+              <p class="row-title"></p>
+              <div class="row-meta"></div>
+            </div>
+            <div class="row-amount"></div>
+          `;
+          row.querySelector(".row-title").textContent = entry.title || "Tracked item";
+          row.querySelector(".row-meta").textContent = [entry.item_type, entry.status].filter(Boolean).join(" · ");
+          row.querySelector(".row-amount").textContent = money(entry.amount, currency);
+          elements.rows.appendChild(row);
+        });
+      }
+
+      function render(raw) {
+        const output = unwrapToolOutput(raw);
+        if (!output) return;
+        if (output.error) {
+          showError(output.error);
+          return;
+        }
+
+        const rows = Array.isArray(output.rows) ? output.rows : [];
+        const currency = output.currency || "EUR";
+        elements.empty.hidden = true;
+        elements.empty.className = "empty";
+        elements.content.hidden = false;
+        elements.tripTitle.textContent = output.trip?.title || "Trip";
+        elements.summary.textContent = rows.length + " priced item" + (rows.length === 1 ? "" : "s");
+
+        elements.amount.innerHTML =
+          money(output.spent || 0, currency) +
+          (output.target ? " <small>/ " + money(output.target, currency) + "</small>" : "");
+
+        elements.bar.hidden = !output.target;
+        elements.fill.style.width = Math.max(0, Math.min(100, output.percent_used || 0)) + "%";
+
+        if (output.target) {
+          const remaining = Number(output.remaining || 0);
+          elements.remaining.textContent =
+            money(Math.abs(remaining), currency) + (remaining >= 0 ? " remaining" : " over target");
+        } else {
+          elements.remaining.textContent = "Save a budget target to compare planned spending.";
+        }
+
+        renderCategories(output.category_totals, currency);
+        renderRows(rows, currency);
+      }
+
+      function currentToolOutput() {
+        return window.openai?.toolOutput;
+      }
+
+      render(currentToolOutput());
+
+      let checksRemaining = 50;
+      const checkForLateOutput = window.setInterval(() => {
+        render(currentToolOutput());
+        checksRemaining -= 1;
+        if (checksRemaining <= 0 || currentToolOutput()) {
+          window.clearInterval(checkForLateOutput);
+        }
+      }, 100);
+
+      window.addEventListener(
+        "message",
+        (event) => {
+          let message = event.data;
+          if (typeof message === "string") {
+            try {
+              message = JSON.parse(message);
+            } catch {
+              return;
+            }
+          }
+          if (!message || message.jsonrpc !== "2.0") return;
+          if (message.method !== "ui/notifications/tool-result") return;
+          render(message.params);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener(
+        "openai:set_globals",
+        (event) => {
+          render(event.detail?.globals?.toolOutput ?? window.openai?.toolOutput);
+        },
+        { passive: true }
+      );
+    </script>
+  </body>
+</html>

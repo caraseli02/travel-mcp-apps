@@ -36,6 +36,8 @@
         min-height: 0;
         padding: 14px;
         background: var(--bg);
+        max-width: 720px;
+        margin: 0 auto;
       }
 
       .empty,
@@ -261,7 +263,7 @@
       }
 
       function itemTime(item) {
-        return item.date_note || item.day_label || "Plan";
+        return item.schedule_label || item.date_note || "Plan";
       }
 
       function itemDetail(item) {

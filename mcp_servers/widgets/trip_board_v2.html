@@ -111,21 +111,21 @@
 
       .lanes {
         display: grid;
-        grid-template-columns: repeat(5, minmax(190px, 1fr));
-        gap: 10px;
-        overflow-x: auto;
-        padding-bottom: 4px;
+        grid-template-columns: 1fr;
+        gap: 8px;
       }
 
       .lane {
         display: grid;
-        align-content: start;
-        gap: 8px;
-        min-height: 220px;
-        padding: 10px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--soft);
+        gap: 7px;
+        padding: 0 0 10px;
+        border-bottom: 1px solid var(--line);
+        background: transparent;
+      }
+
+      .lane:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
       }
 
       .lane-title {
@@ -147,11 +147,14 @@
 
       .card {
         display: grid;
-        gap: 7px;
-        padding: 10px;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 6px 10px;
+        padding: 9px 0 0;
         border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #fff;
+        border-width: 0;
+        border-top-width: 1px;
+        border-radius: 0;
+        background: transparent;
       }
 
       .card-title {
@@ -164,7 +167,8 @@
 
       .raw,
       .meta,
-      .missing {
+      .missing,
+      .more {
         margin: 0;
         color: #344054;
         font-size: 12px;
@@ -177,6 +181,15 @@
         display: flex;
         flex-wrap: wrap;
         gap: 6px;
+        color: var(--muted);
+      }
+
+      .raw,
+      .missing {
+        grid-column: 1 / -1;
+      }
+
+      .more {
         color: var(--muted);
       }
 
@@ -260,6 +273,8 @@
         padding: 14px;
         background: var(--surface);
         overflow: hidden;
+        max-width: 720px;
+        margin: 0 auto;
       }
 
       .empty,
@@ -303,17 +318,14 @@
       }
 
       .lanes {
-        grid-template-columns: repeat(5, minmax(168px, 1fr));
         gap: 8px;
-        padding-bottom: 2px;
       }
 
       .lane {
-        min-height: 184px;
-        padding: 9px;
-        border: 1px solid var(--line);
-        border-radius: 10px;
-        background: var(--soft);
+        min-height: 0;
+        border-bottom: 1px solid var(--line);
+        border-radius: 0;
+        background: transparent;
       }
 
       .lane-title {
@@ -322,9 +334,8 @@
       }
 
       .card {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: var(--surface);
+        border-color: var(--line);
+        background: transparent;
       }
 
       .card-title {
@@ -462,9 +473,15 @@
           lane.appendChild(empty);
           return lane;
         }
-        values.forEach((value) => {
+        values.slice(0, 2).forEach((value) => {
           lane.appendChild(typeof value === "string" ? missingCard(value) : itemCard(value));
         });
+        if (values.length > 2) {
+          const more = document.createElement("p");
+          more.className = "more";
+          more.textContent = "+" + (values.length - 2) + " more saved here";
+          lane.appendChild(more);
+        }
         return lane;
       }
 

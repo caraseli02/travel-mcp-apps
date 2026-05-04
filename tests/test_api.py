@@ -42,6 +42,7 @@ async def test_mounted_mcp_servers_list_tools() -> None:
                 "update_trip_item_status",
                 "get_trip_board",
                 "get_trip_itinerary",
+                "get_trip_budget",
                 "get_trip_summary",
                 "get_current_weather",
                 "get_forecast",

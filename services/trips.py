@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 import json
 from pathlib import Path
 import re
@@ -186,7 +186,10 @@ def build_itinerary(trip: Trip, items: list[TripItem]) -> dict[str, Any]:
 
     grouped: dict[str, list[dict[str, Any]]] = {}
     for item in scheduled:
-        grouped.setdefault(item.day_label or "Unscheduled", []).append(item_to_dict(item))
+        label = item.day_label or "Unscheduled"
+        data = item_to_dict(item)
+        data["schedule_label"] = _schedule_part(label) or item.date_note or "Plan"
+        grouped.setdefault(_day_label(label), []).append(data)
 
     def day_sort_key(day_label: str) -> tuple[int, str]:
         match = re.search(r"\d+", day_label)
@@ -194,8 +197,16 @@ def build_itinerary(trip: Trip, items: list[TripItem]) -> dict[str, Any]:
             return (int(match.group()), day_label)
         return (999, day_label)
 
+    def item_sort_key(item: dict[str, Any]) -> tuple[int, str]:
+        label = str(item.get("schedule_label") or item.get("date_note") or "")
+        order = {"morning": 1, "midday": 2, "afternoon": 3, "evening": 4, "night": 5}
+        for key, value in order.items():
+            if key in label.lower():
+                return (value, label)
+        return (50, label)
+
     days = [
-        {"label": label, "items": grouped[label]}
+        {"label": label, "items": sorted(grouped[label], key=item_sort_key)}
         for label in sorted(grouped, key=day_sort_key)
     ]
 
@@ -221,6 +232,149 @@ def build_itinerary(trip: Trip, items: list[TripItem]) -> dict[str, Any]:
             "unscheduled": len(unscheduled),
         },
     }
+
+
+def _day_label(label: str) -> str:
+    match = re.search(r"\bday\s*(\d+)\b", label, re.IGNORECASE)
+    if match:
+        return f"Day {match.group(1)}"
+    return label.strip() or "Unscheduled"
+
+
+def _schedule_part(label: str) -> str | None:
+    value = re.sub(r"\bday\s*\d+\b", "", label, flags=re.IGNORECASE)
+    value = re.sub(r"^[\s:,-]+|[\s:,-]+$", "", value)
+    return value.strip().capitalize() or None
+
+
+def build_budget(trip: Trip, items: list[TripItem]) -> dict[str, Any]:
+    target = _budget_target(items)
+    party_size = _party_size(items)
+    nights = _trip_nights(trip)
+    rows: list[dict[str, Any]] = []
+
+    for item in items:
+        if item.status == "rejected" or item.item_type == "constraint":
+            continue
+        amount = _item_amount(item, party_size, nights)
+        if amount is None:
+            continue
+        rows.append(
+            {
+                "id": item.id,
+                "title": item.title or item.raw_content or "Saved item",
+                "item_type": item.item_type,
+                "status": item.status,
+                "amount": amount,
+                "currency": "EUR",
+                "note": item.price_note or item.raw_content,
+            }
+        )
+
+    category_totals: dict[str, float] = {}
+    for row in rows:
+        category = str(row["item_type"])
+        category_totals[category] = category_totals.get(category, 0) + float(row["amount"])
+
+    spent = round(sum(float(row["amount"]) for row in rows), 2)
+    remaining = None if target is None else round(target - spent, 2)
+    percent_used = 0 if not target else min(100, round((spent / target) * 100))
+
+    return {
+        "trip": trip_to_dict(trip),
+        "target": target,
+        "spent": spent,
+        "remaining": remaining,
+        "percent_used": percent_used,
+        "currency": "EUR",
+        "rows": rows,
+        "category_totals": [
+            {"category": category, "amount": round(amount, 2)}
+            for category, amount in sorted(category_totals.items())
+        ],
+        "counts": {
+            "priced_items": len(rows),
+            "tracked_categories": len(category_totals),
+            "party_size": party_size,
+            "nights": nights,
+        },
+    }
+
+
+def _budget_target(items: list[TripItem]) -> float | None:
+    for item in items:
+        text = " ".join(
+            part
+            for part in [item.price_note, item.raw_content, item.notes]
+            if part
+        )
+        if item.item_type == "constraint" or "budget" in text.lower():
+            amount = _first_money_amount(text)
+            if amount is not None:
+                return amount
+    return None
+
+
+def _item_amount(item: TripItem, party_size: int, nights: int) -> float | None:
+    text = " ".join(
+        part
+        for part in [item.price_note, item.raw_content, item.notes]
+        if part
+    )
+    amount = _first_money_amount(text)
+    if amount is None:
+        return None
+    lowered = text.lower()
+    if re.search(r"/\s*person|per\s+person|\bpp\b", lowered):
+        amount *= max(1, party_size)
+    if re.search(r"/\s*night|per\s+night", lowered):
+        amount *= max(1, nights)
+    return round(amount, 2)
+
+
+def _party_size(items: list[TripItem]) -> int:
+    text = " ".join(
+        part
+        for item in items
+        for part in [item.raw_content, item.notes]
+        if part
+    ).lower()
+    adults = _count_people(text, r"(\d+)\s*adults?")
+    kids = _count_people(text, r"(\d+)\s*(?:kids?|children)")
+    return max(1, adults + kids)
+
+
+def _count_people(text: str, pattern: str) -> int:
+    match = re.search(pattern, text, re.IGNORECASE)
+    if not match:
+        return 0
+    return int(match.group(1))
+
+
+def _trip_nights(trip: Trip) -> int:
+    if not trip.start_date or not trip.end_date:
+        return 1
+    try:
+        start = date.fromisoformat(trip.start_date)
+        end = date.fromisoformat(trip.end_date)
+    except ValueError:
+        return 1
+    return max(1, (end - start).days)
+
+
+def _first_money_amount(text: str) -> float | None:
+    match = re.search(
+        r"(?:€|EUR|\$)\s*([0-9](?:[0-9.,]*[0-9])?)|([0-9](?:[0-9.,]*[0-9])?)\s*(?:€|EUR|\$)",
+        text,
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    raw = (match.group(1) or match.group(2) or "").replace(",", "")
+    try:
+        return round(float(raw), 2)
+    except ValueError:
+        return None
 
 
 def summarize_items(items: list[TripItem]) -> dict[str, Any]:

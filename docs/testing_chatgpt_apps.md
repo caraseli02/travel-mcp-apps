@@ -23,6 +23,7 @@ Current widget resources:
 | Travel agent | `8104` | `add_trip_item` / `list_trip_inbox` | `ui://trip/inbox-v2.html` |
 | Travel agent | `8104` | `get_trip_board` | `ui://trip/board-v2.html` |
 | Travel agent | `8104` | `get_trip_itinerary` | `ui://trip/itinerary-v1.html` |
+| Travel agent | `8104` | `get_trip_budget` | `ui://trip/budget-v1.html` |
 
 The FastAPI app also mounts the unified travel-agent MCP endpoint at
 `/mcp/travel-agent/`. Prefer that endpoint for ChatGPT Developer Mode when
@@ -122,6 +123,7 @@ output in ChatGPT Developer Mode:
 - `add_trip_item` and `list_trip_inbox` render `ui://trip/inbox-v2.html`.
 - `get_trip_board` renders `ui://trip/board-v2.html`.
 - `get_trip_itinerary` renders `ui://trip/itinerary-v1.html`.
+- `get_trip_budget` renders `ui://trip/budget-v1.html`.
 
 ## ChatGPT Developer Mode Path
 
