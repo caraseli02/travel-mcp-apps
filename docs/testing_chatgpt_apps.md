@@ -15,13 +15,14 @@ Current widget resources:
 
 | Server | Port | Tool | Widget resource |
 | --- | ---: | --- | --- |
-| Weather | `8101` | `get_current_weather` | `ui://weather/dashboard-v4.html` |
-| Weather | `8101` | `get_forecast` | `ui://weather/forecast-chart-v1.html` |
-| Packing | `8103` | `generate_packing_list` | `ui://packing/checklist-v1.html` |
-| Travel tips | `8102` | `get_destination_tips` | `ui://travel/destination-guide-v1.html` |
-| Travel tips | `8102` | `recommend_activities` | `ui://travel/activity-cards-v1.html` |
-| Travel agent | `8104` | `add_trip_item` / `list_trip_inbox` | `ui://trip/inbox-v1.html` |
-| Travel agent | `8104` | `get_trip_board` | `ui://trip/board-v1.html` |
+| Weather | `8101` | `get_current_weather` | `ui://weather/dashboard-v5.html` |
+| Weather | `8101` | `get_forecast` | `ui://weather/forecast-chart-v2.html` |
+| Packing | `8103` | `generate_packing_list` | `ui://packing/checklist-v2.html` |
+| Travel tips | `8102` | `get_destination_tips` | `ui://travel/destination-guide-v2.html` |
+| Travel tips | `8102` | `recommend_activities` | `ui://travel/activity-cards-v2.html` |
+| Travel agent | `8104` | `add_trip_item` / `list_trip_inbox` | `ui://trip/inbox-v2.html` |
+| Travel agent | `8104` | `get_trip_board` | `ui://trip/board-v2.html` |
+| Travel agent | `8104` | `get_trip_itinerary` | `ui://trip/itinerary-v1.html` |
 
 The FastAPI app also mounts the unified travel-agent MCP endpoint at
 `/mcp/travel-agent/`. Prefer that endpoint for ChatGPT Developer Mode when
@@ -84,7 +85,7 @@ Expected response shape:
 }
 ```
 
-Also verify that reading `ui://weather/dashboard-v4.html` returns:
+Also verify that reading `ui://weather/dashboard-v5.html` returns:
 
 ```json
 {
@@ -113,13 +114,14 @@ testing in ChatGPT.
 Bridge behavior is validated by confirming that each widget renders real tool
 output in ChatGPT Developer Mode:
 
-- `get_current_weather` renders `ui://weather/dashboard-v4.html`.
-- `get_forecast` renders `ui://weather/forecast-chart-v1.html`.
-- `generate_packing_list` renders `ui://packing/checklist-v1.html`.
-- `get_destination_tips` renders `ui://travel/destination-guide-v1.html`.
-- `recommend_activities` renders `ui://travel/activity-cards-v1.html`.
-- `add_trip_item` and `list_trip_inbox` render `ui://trip/inbox-v1.html`.
-- `get_trip_board` renders `ui://trip/board-v1.html`.
+- `get_current_weather` renders `ui://weather/dashboard-v5.html`.
+- `get_forecast` renders `ui://weather/forecast-chart-v2.html`.
+- `generate_packing_list` renders `ui://packing/checklist-v2.html`.
+- `get_destination_tips` renders `ui://travel/destination-guide-v2.html`.
+- `recommend_activities` renders `ui://travel/activity-cards-v2.html`.
+- `add_trip_item` and `list_trip_inbox` render `ui://trip/inbox-v2.html`.
+- `get_trip_board` renders `ui://trip/board-v2.html`.
+- `get_trip_itinerary` renders `ui://trip/itinerary-v1.html`.
 
 ## ChatGPT Developer Mode Path
 
@@ -191,6 +193,7 @@ Recommended local steps:
    Recommend activities in London for rainy spring weather.
    Create a Tokyo trip, save this hotel option, then show my trip inbox.
    Move the saved hotel to shortlisted and show my trip board.
+   Add a Day 1 morning museum visit to the trip, move it to shortlisted, then show my day-by-day itinerary.
    ```
 
 6. Expected result: ChatGPT calls the matching tool and renders the associated widget.

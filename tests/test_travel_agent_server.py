@@ -65,6 +65,24 @@ def test_board_tool_groups_items_by_status(trip_store: InMemoryTripStore) -> Non
     assert result.structuredContent["lanes"]["itinerary_draft"][0]["id"] == activity["id"]
 
 
+def test_itinerary_tool_groups_items_by_day(trip_store: InMemoryTripStore) -> None:
+    trip = trip_store.create_trip("Rome")
+    activity = travel_agent_server.add_trip_item(
+        trip.id,
+        "Colosseum tour",
+        day_label="Day 1",
+        title="Colosseum Tour",
+    ).structuredContent["item"]
+    travel_agent_server.update_trip_item_status(activity["id"], "shortlisted")
+
+    result = travel_agent_server.get_trip_itinerary(trip.id)
+
+    assert result.isError is not True
+    assert result.structuredContent["days"][0]["label"] == "Day 1"
+    assert result.structuredContent["days"][0]["items"][0]["id"] == activity["id"]
+    assert result.structuredContent["counts"]["scheduled"] == 1
+
+
 def test_trip_summary_reports_counts_and_missing_pieces(trip_store: InMemoryTripStore) -> None:
     trip = trip_store.create_trip("Madrid")
     travel_agent_server.add_trip_item(trip.id, "Dinner at Sobrino de Botin")
@@ -133,13 +151,14 @@ def test_tool_returns_mcp_error_for_store_connection_failure(
 
 def test_unified_server_registers_every_tool_output_template() -> None:
     templates = {
-        "ui://trip/inbox-v1.html": travel_agent_server.trip_inbox_ui,
-        "ui://trip/board-v1.html": travel_agent_server.trip_board_ui,
-        "ui://weather/dashboard-v4.html": travel_agent_server.weather_dashboard_ui,
-        "ui://weather/forecast-chart-v1.html": travel_agent_server.weather_forecast_chart_ui,
-        "ui://packing/checklist-v1.html": travel_agent_server.packing_checklist_ui,
-        "ui://travel/destination-guide-v1.html": travel_agent_server.travel_destination_guide_ui,
-        "ui://travel/activity-cards-v1.html": travel_agent_server.travel_activity_cards_ui,
+        "ui://trip/inbox-v2.html": travel_agent_server.trip_inbox_ui,
+        "ui://trip/board-v2.html": travel_agent_server.trip_board_ui,
+        "ui://trip/itinerary-v1.html": travel_agent_server.trip_itinerary_ui,
+        "ui://weather/dashboard-v5.html": travel_agent_server.weather_dashboard_ui,
+        "ui://weather/forecast-chart-v2.html": travel_agent_server.weather_forecast_chart_ui,
+        "ui://packing/checklist-v2.html": travel_agent_server.packing_checklist_ui,
+        "ui://travel/destination-guide-v2.html": travel_agent_server.travel_destination_guide_ui,
+        "ui://travel/activity-cards-v2.html": travel_agent_server.travel_activity_cards_ui,
     }
 
     for uri, read_resource in templates.items():

@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #101214;
+        --muted: #6b7280;
+        --surface: #ffffff;
+        --soft: #f6f7f8;
+        --line: #e5e7eb;
+        --accent: #2f6f4e;
+        --accent-soft: #e8f3ed;
+        --danger: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 280px;
+        color: var(--ink);
+        background: var(--surface);
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .cards {
+        min-height: 320px;
+        padding: 16px;
+      }
+
+      .empty,
+      .error {
+        display: grid;
+        min-height: 280px;
+        place-items: center;
+        padding: 32px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+        text-align: center;
+      }
+
+      .empty::before {
+        content: "";
+        display: block;
+        width: 40px;
+        height: 40px;
+        margin: 0 auto 14px;
+        border-radius: 50%;
+        background: conic-gradient(var(--accent), rgba(47, 111, 78, 0.08));
+        animation: spin 1.2s linear infinite;
+      }
+
+      .error {
+        color: var(--danger);
+      }
+
+      .content {
+        display: grid;
+        gap: 14px;
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: start;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 0 6px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      .context {
+        align-self: start;
+        max-width: 160px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.3;
+        text-align: right;
+        text-transform: capitalize;
+      }
+
+      .summary {
+        margin: 0;
+        color: #374151;
+        font-size: 14px;
+        line-height: 1.42;
+      }
+
+      .activity-list {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .activity {
+        display: grid;
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      .activity:first-child {
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      .activity-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: start;
+      }
+
+      .activity-name {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.25;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: capitalize;
+        white-space: nowrap;
+      }
+
+      .description {
+        margin: 0;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.34;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.3;
+      }
+
+      .cue {
+        color: var(--accent);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .empty::before {
+          animation: none;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .cards {
+          min-height: 0;
+          padding: 14px;
+        }
+
+        .header,
+        .activity-head {
+          grid-template-columns: 1fr;
+        }
+
+        .context {
+          max-width: none;
+          text-align: left;
+        }
+
+        .badge {
+          justify-self: start;
+        }
+      }
+
+      /* ChatGPT-native v4 surface pass */
+      :root {
+        --ink: #171412;
+        --muted: #6f6a64;
+        --surface: #ffffff;
+        --soft: #fbfbfb;
+        --line: #e8e3dc;
+        --accent: #9a4f2f;
+        --accent-soft: #fff3ec;
+        --danger: #a03a2b;
+      }
+
+      body {
+        color: var(--ink);
+        background: Canvas;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+        overflow-x: hidden;
+      }
+
+      .cards {
+        min-height: 0;
+        padding: 14px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .empty,
+      .error {
+        min-height: 236px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--soft);
+      }
+
+      .empty::before {
+        display: none;
+      }
+
+      .content {
+        gap: 12px;
+      }
+
+      .header {
+        gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        color: #9b948c;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+      }
+
+      .eyebrow::before {
+        display: none;
+      }
+
+      h1 {
+        color: var(--ink);
+        font-size: 19px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .context,
+      .summary,
+      .description,
+      .meta {
+        color: var(--muted);
+      }
+
+      .activity {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 7px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+      }
+
+      .activity + .activity {
+        margin-top: 8px;
+      }
+
+      .activity:first-child {
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      .activity-head {
+        min-width: 0;
+      }
+
+      .activity-name {
+        color: var(--ink);
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+
+      .badge {
+        min-height: 20px;
+        background: var(--accent-soft);
+        color: #73351e;
+        font-weight: 620;
+      }
+
+      .cue {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="cards" id="cards" aria-live="polite">
+      <section class="empty" id="empty">Waiting for activity data...</section>
+
+      <section class="content" id="content" hidden>
+        <header class="header">
+          <div>
+            <p class="eyebrow">Activity picks</p>
+            <h1 id="city">Destination</h1>
+          </div>
+          <p class="context" id="context"></p>
+        </header>
+
+        <p class="summary" id="summary"></p>
+        <ul class="activity-list" id="activityList"></ul>
+      </section>
+    </main>
+
+    <script>
+      const elements = {
+        empty: document.getElementById("empty"),
+        content: document.getElementById("content"),
+        city: document.getElementById("city"),
+        context: document.getElementById("context"),
+        summary: document.getElementById("summary"),
+        activityList: document.getElementById("activityList"),
+      };
+
+      function unwrapToolOutput(raw) {
+        return raw?.structuredContent ?? raw?.toolOutput ?? raw;
+      }
+
+      function showError(message) {
+        elements.empty.textContent = message || "Activity data is unavailable.";
+        elements.empty.className = "error";
+        elements.empty.hidden = false;
+        elements.content.hidden = true;
+      }
+
+      function money(value) {
+        if (value === 0) return "free";
+        if (value === undefined || value === null) return "cost varies";
+        return "$" + value;
+      }
+
+      function weatherCue(activity, weather) {
+        if (!activity.weather_dependent) return "Works in any weather";
+        const best = activity.best_weather || [];
+        if (best.includes(weather)) return "Good match for " + weather;
+        return "Weather dependent";
+      }
+
+      function renderActivities(activities, weather) {
+        elements.activityList.replaceChildren();
+        activities.forEach((activity) => {
+          const item = document.createElement("li");
+          item.className = "activity";
+          item.innerHTML = `
+            <div class="activity-head">
+              <h2 class="activity-name"></h2>
+              <span class="badge"></span>
+            </div>
+            <p class="description"></p>
+            <div class="meta">
+              <span class="duration"></span>
+              <span class="cost"></span>
+              <span class="cue"></span>
+            </div>
+          `;
+          item.querySelector(".activity-name").textContent = activity.name || "Activity";
+          item.querySelector(".badge").textContent = activity.category || "activity";
+          item.querySelector(".description").textContent = activity.description || "";
+          item.querySelector(".duration").textContent = (activity.duration_hours || "?") + " hours";
+          item.querySelector(".cost").textContent = money(activity.cost_usd);
+          item.querySelector(".cue").textContent = weatherCue(activity, weather);
+          elements.activityList.appendChild(item);
+        });
+      }
+
+      function render(raw) {
+        const output = unwrapToolOutput(raw);
+        if (!output) return;
+
+        if (output.error) {
+          showError(output.error);
+          return;
+        }
+
+        const activities = Array.isArray(output.activities) ? output.activities : [];
+        if (activities.length === 0) {
+          showError("No activity recommendations were returned.");
+          return;
+        }
+
+        const weather = output.weather || "any";
+        const season = output.season || "";
+        elements.empty.hidden = true;
+        elements.empty.className = "empty";
+        elements.content.hidden = false;
+        elements.city.textContent = output.city || "Destination";
+        elements.context.textContent = [weather, season].filter(Boolean).join(" · ");
+        elements.summary.textContent =
+          activities.length + " recommendation" + (activities.length === 1 ? "" : "s") +
+          " selected for the current conditions.";
+
+        renderActivities(activities, weather);
+      }
+
+      function currentToolOutput() {
+        return window.openai?.toolOutput;
+      }
+
+      render(currentToolOutput());
+
+      let checksRemaining = 50;
+      const checkForLateOutput = window.setInterval(() => {
+        render(currentToolOutput());
+        checksRemaining -= 1;
+        if (checksRemaining <= 0 || currentToolOutput()) {
+          window.clearInterval(checkForLateOutput);
+        }
+      }, 100);
+
+      window.addEventListener(
+        "message",
+        (event) => {
+          let message = event.data;
+          if (typeof message === "string") {
+            try {
+              message = JSON.parse(message);
+            } catch {
+              return;
+            }
+          }
+          if (!message || message.jsonrpc !== "2.0") return;
+          if (message.method !== "ui/notifications/tool-result") return;
+          render(message.params);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener(
+        "openai:set_globals",
+        (event) => {
+          render(event.detail?.globals?.toolOutput ?? window.openai?.toolOutput);
+        },
+        { passive: true }
+      );
+    </script>
+  </body>
+</html>

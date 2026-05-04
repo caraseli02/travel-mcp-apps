@@ -28,6 +28,7 @@ from services.trips import (
     TripStoreError,
     TripValidationError,
     build_board,
+    build_itinerary,
     item_to_dict,
     summarize_items,
     trip_to_dict,
@@ -115,8 +116,8 @@ def create_trip(
     name="add_trip_item",
     description="Save a raw travel fragment into a trip inbox, deduped by normalized content.",
     meta={
-        "ui": {"resourceUri": "ui://trip/inbox-v1.html"},
-        "openai/outputTemplate": "ui://trip/inbox-v1.html",
+        "ui": {"resourceUri": "ui://trip/inbox-v2.html"},
+        "openai/outputTemplate": "ui://trip/inbox-v2.html",
     },
 )
 def add_trip_item(
@@ -169,8 +170,8 @@ def add_trip_item(
     name="list_trip_inbox",
     description="List unprocessed inbox items for a trip.",
     meta={
-        "ui": {"resourceUri": "ui://trip/inbox-v1.html"},
-        "openai/outputTemplate": "ui://trip/inbox-v1.html",
+        "ui": {"resourceUri": "ui://trip/inbox-v2.html"},
+        "openai/outputTemplate": "ui://trip/inbox-v2.html",
     },
 )
 def list_trip_inbox(trip_id: str) -> CallToolResult:
@@ -212,8 +213,8 @@ def update_trip_item_status(
     name="get_trip_board",
     description="Show the trip board grouped into decisions, shortlist, booked items, itinerary draft, and missing pieces.",
     meta={
-        "ui": {"resourceUri": "ui://trip/board-v1.html"},
-        "openai/outputTemplate": "ui://trip/board-v1.html",
+        "ui": {"resourceUri": "ui://trip/board-v2.html"},
+        "openai/outputTemplate": "ui://trip/board-v2.html",
     },
 )
 def get_trip_board(trip_id: str) -> CallToolResult:
@@ -224,6 +225,28 @@ def get_trip_board(trip_id: str) -> CallToolResult:
         return CallToolResult(
             structuredContent=board,
             content=_text(f"Showing trip board for {trip.title}."),
+            _meta={},
+        )
+
+    return _run_trip_tool(action)
+
+
+@server.tool(
+    name="get_trip_itinerary",
+    description="Show the trip schedule as a day-by-day itinerary timeline.",
+    meta={
+        "ui": {"resourceUri": "ui://trip/itinerary-v1.html"},
+        "openai/outputTemplate": "ui://trip/itinerary-v1.html",
+    },
+)
+def get_trip_itinerary(trip_id: str) -> CallToolResult:
+    def action() -> CallToolResult:
+        store = get_trip_store()
+        trip = store.get_trip(trip_id)
+        itinerary = build_itinerary(trip, store.list_items(trip_id))
+        return CallToolResult(
+            structuredContent=itinerary,
+            content=_text(f"Showing day-by-day itinerary for {trip.title}."),
             _meta={},
         )
 
@@ -262,8 +285,8 @@ def get_trip_summary(trip_id: str) -> CallToolResult:
     name="get_current_weather",
     description="Get current weather from the unified travel-agent endpoint.",
     meta={
-        "ui": {"resourceUri": "ui://weather/dashboard-v4.html"},
-        "openai/outputTemplate": "ui://weather/dashboard-v4.html",
+        "ui": {"resourceUri": "ui://weather/dashboard-v5.html"},
+        "openai/outputTemplate": "ui://weather/dashboard-v5.html",
     },
 )
 async def get_current_weather(city: str) -> CallToolResult:
@@ -274,8 +297,8 @@ async def get_current_weather(city: str) -> CallToolResult:
     name="get_forecast",
     description="Get a weather forecast from the unified travel-agent endpoint.",
     meta={
-        "ui": {"resourceUri": "ui://weather/forecast-chart-v1.html"},
-        "openai/outputTemplate": "ui://weather/forecast-chart-v1.html",
+        "ui": {"resourceUri": "ui://weather/forecast-chart-v2.html"},
+        "openai/outputTemplate": "ui://weather/forecast-chart-v2.html",
     },
 )
 async def get_forecast(city: str, days: int = 5) -> CallToolResult:
@@ -286,8 +309,8 @@ async def get_forecast(city: str, days: int = 5) -> CallToolResult:
     name="get_destination_tips",
     description="Get destination tips from the unified travel-agent endpoint.",
     meta={
-        "ui": {"resourceUri": "ui://travel/destination-guide-v1.html"},
-        "openai/outputTemplate": "ui://travel/destination-guide-v1.html",
+        "ui": {"resourceUri": "ui://travel/destination-guide-v2.html"},
+        "openai/outputTemplate": "ui://travel/destination-guide-v2.html",
     },
 )
 def get_destination_tips(city: str) -> CallToolResult:
@@ -298,8 +321,8 @@ def get_destination_tips(city: str) -> CallToolResult:
     name="recommend_activities",
     description="Recommend activities from the unified travel-agent endpoint.",
     meta={
-        "ui": {"resourceUri": "ui://travel/activity-cards-v1.html"},
-        "openai/outputTemplate": "ui://travel/activity-cards-v1.html",
+        "ui": {"resourceUri": "ui://travel/activity-cards-v2.html"},
+        "openai/outputTemplate": "ui://travel/activity-cards-v2.html",
     },
 )
 def recommend_activities(city: str, weather: str, season: str) -> CallToolResult:
@@ -310,8 +333,8 @@ def recommend_activities(city: str, weather: str, season: str) -> CallToolResult
     name="generate_packing_list",
     description="Generate a packing list from the unified travel-agent endpoint.",
     meta={
-        "ui": {"resourceUri": "ui://packing/checklist-v1.html"},
-        "openai/outputTemplate": "ui://packing/checklist-v1.html",
+        "ui": {"resourceUri": "ui://packing/checklist-v2.html"},
+        "openai/outputTemplate": "ui://packing/checklist-v2.html",
     },
 )
 def generate_packing_list(
@@ -321,7 +344,7 @@ def generate_packing_list(
 
 
 @server.resource(
-    "ui://weather/dashboard-v4.html",
+    "ui://weather/dashboard-v5.html",
     name="weather_dashboard_ui",
     description="Interactive weather dashboard UI",
     mime_type="text/html;profile=mcp-app",
@@ -337,11 +360,11 @@ def generate_packing_list(
     },
 )
 def weather_dashboard_ui() -> str:
-    return (WIDGETS_DIR / "weather_dashboard_v4.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "weather_dashboard_v5.html").read_text(encoding="utf-8")
 
 
 @server.resource(
-    "ui://weather/forecast-chart-v1.html",
+    "ui://weather/forecast-chart-v2.html",
     name="weather_forecast_chart_ui",
     description="5-day weather forecast chart UI",
     mime_type="text/html;profile=mcp-app",
@@ -357,11 +380,11 @@ def weather_dashboard_ui() -> str:
     },
 )
 def weather_forecast_chart_ui() -> str:
-    return (WIDGETS_DIR / "weather_forecast_chart_v1.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "weather_forecast_chart_v2.html").read_text(encoding="utf-8")
 
 
 @server.resource(
-    "ui://packing/checklist-v1.html",
+    "ui://packing/checklist-v2.html",
     name="packing_checklist_ui",
     description="Packing checklist UI",
     mime_type="text/html;profile=mcp-app",
@@ -377,11 +400,11 @@ def weather_forecast_chart_ui() -> str:
     },
 )
 def packing_checklist_ui() -> str:
-    return (WIDGETS_DIR / "packing_checklist_v1.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "packing_checklist_v2.html").read_text(encoding="utf-8")
 
 
 @server.resource(
-    "ui://travel/destination-guide-v1.html",
+    "ui://travel/destination-guide-v2.html",
     name="travel_destination_guide_ui",
     description="Destination guide UI",
     mime_type="text/html;profile=mcp-app",
@@ -397,11 +420,11 @@ def packing_checklist_ui() -> str:
     },
 )
 def travel_destination_guide_ui() -> str:
-    return (WIDGETS_DIR / "travel_destination_guide_v1.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "travel_destination_guide_v2.html").read_text(encoding="utf-8")
 
 
 @server.resource(
-    "ui://travel/activity-cards-v1.html",
+    "ui://travel/activity-cards-v2.html",
     name="travel_activity_cards_ui",
     description="Activity recommendation cards UI",
     mime_type="text/html;profile=mcp-app",
@@ -417,11 +440,11 @@ def travel_destination_guide_ui() -> str:
     },
 )
 def travel_activity_cards_ui() -> str:
-    return (WIDGETS_DIR / "travel_activity_cards_v1.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "travel_activity_cards_v2.html").read_text(encoding="utf-8")
 
 
 @server.resource(
-    "ui://trip/inbox-v1.html",
+    "ui://trip/inbox-v2.html",
     name="trip_inbox_ui",
     description="Trip Inbox UI",
     mime_type="text/html;profile=mcp-app",
@@ -437,11 +460,11 @@ def travel_activity_cards_ui() -> str:
     },
 )
 def trip_inbox_ui() -> str:
-    return (WIDGETS_DIR / "trip_inbox_v1.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "trip_inbox_v2.html").read_text(encoding="utf-8")
 
 
 @server.resource(
-    "ui://trip/board-v1.html",
+    "ui://trip/board-v2.html",
     name="trip_board_ui",
     description="Trip Board UI",
     mime_type="text/html;profile=mcp-app",
@@ -457,7 +480,27 @@ def trip_inbox_ui() -> str:
     },
 )
 def trip_board_ui() -> str:
-    return (WIDGETS_DIR / "trip_board_v1.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "trip_board_v2.html").read_text(encoding="utf-8")
+
+
+@server.resource(
+    "ui://trip/itinerary-v1.html",
+    name="trip_itinerary_ui",
+    description="Trip itinerary timeline UI",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {
+            "prefersBorder": True,
+            "csp": {
+                "connectDomains": [],
+                "resourceDomains": [],
+            },
+        },
+        "openai/widgetDescription": "Shows scheduled trip items grouped into a day-by-day itinerary.",
+    },
+)
+def trip_itinerary_ui() -> str:
+    return (WIDGETS_DIR / "trip_itinerary_v1.html").read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":

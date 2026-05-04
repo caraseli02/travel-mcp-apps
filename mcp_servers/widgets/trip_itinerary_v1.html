@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #ffffff;
+        --surface: #fbfbfb;
+        --line: #e8e3dc;
+        --text: #171412;
+        --muted: #6f6a64;
+        --soft: #9b948c;
+        --accent: #9a4f2f;
+        --accent-soft: #fff3ec;
+        --danger: #a03a2b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 280px;
+        color: var(--text);
+        background: Canvas;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+        overflow-x: hidden;
+      }
+
+      .itinerary {
+        min-height: 0;
+        padding: 14px;
+        background: var(--bg);
+      }
+
+      .empty,
+      .error {
+        display: grid;
+        min-height: 236px;
+        place-items: center;
+        padding: 28px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+        text-align: center;
+      }
+
+      .error {
+        color: var(--danger);
+      }
+
+      .content {
+        display: grid;
+        gap: 12px;
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: start;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        margin: 0 0 6px;
+        color: var(--soft);
+        font-size: 11px;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        color: var(--text);
+        font-size: 19px;
+        font-weight: 700;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .summary {
+        min-width: 96px;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 650;
+        line-height: 1.2;
+        text-align: center;
+      }
+
+      .days {
+        display: grid;
+        gap: 14px;
+      }
+
+      .day {
+        display: grid;
+        grid-template-columns: 35px minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .date {
+        width: 35px;
+        min-height: 35px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--surface);
+        display: grid;
+        place-items: center;
+        color: var(--text);
+        font-weight: 720;
+      }
+
+      .day-title {
+        margin: 0;
+        color: var(--text);
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .slots {
+        margin-top: 8px;
+        padding-left: 10px;
+        border-left: 1px solid var(--line);
+      }
+
+      .slot {
+        position: relative;
+        display: grid;
+        grid-template-columns: 74px minmax(0, 1fr);
+        gap: 10px;
+        padding: 8px 0;
+      }
+
+      .slot::before {
+        content: "";
+        position: absolute;
+        left: -14px;
+        top: 15px;
+        width: 7px;
+        height: 7px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: var(--bg);
+      }
+
+      .time {
+        color: var(--soft);
+        font-size: 11px;
+        font-weight: 650;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .slot-title {
+        color: var(--text);
+        font-size: 12px;
+        font-weight: 650;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+      }
+
+      .slot-detail {
+        margin-top: 1px;
+        color: var(--muted);
+        font-size: 11px;
+        overflow-wrap: anywhere;
+      }
+
+      .gap {
+        border: 1px dashed #d7d0c6;
+        border-radius: 8px;
+        padding: 9px 10px;
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (max-width: 430px) {
+        .header {
+          grid-template-columns: 1fr;
+        }
+
+        .summary {
+          justify-self: start;
+          text-align: left;
+        }
+
+        .slot {
+          grid-template-columns: 1fr;
+          gap: 2px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="itinerary" aria-live="polite">
+      <section class="empty" id="empty">Waiting for itinerary data...</section>
+
+      <section class="content" id="content" hidden>
+        <header class="header">
+          <div>
+            <p class="eyebrow">Day by day</p>
+            <h1 id="tripTitle">Trip</h1>
+          </div>
+          <div class="summary" id="summary">0 scheduled</div>
+        </header>
+        <section class="days" id="days" aria-label="Scheduled itinerary"></section>
+        <section class="gap" id="gaps" hidden></section>
+      </section>
+    </main>
+
+    <script>
+      const elements = {
+        empty: document.getElementById("empty"),
+        content: document.getElementById("content"),
+        tripTitle: document.getElementById("tripTitle"),
+        summary: document.getElementById("summary"),
+        days: document.getElementById("days"),
+        gaps: document.getElementById("gaps"),
+      };
+
+      function unwrapToolOutput(raw) {
+        return raw?.structuredContent ?? raw?.toolOutput ?? raw;
+      }
+
+      function showError(message) {
+        elements.empty.textContent = message || "Itinerary is unavailable.";
+        elements.empty.className = "error";
+        elements.empty.hidden = false;
+        elements.content.hidden = true;
+      }
+
+      function showEmpty(message) {
+        elements.empty.textContent = message;
+        elements.empty.className = "empty";
+        elements.empty.hidden = false;
+        elements.content.hidden = true;
+      }
+
+      function dayNumber(label, index) {
+        const match = String(label || "").match(/\d+/);
+        return match ? match[0] : String(index + 1);
+      }
+
+      function itemTime(item) {
+        return item.date_note || item.day_label || "Plan";
+      }
+
+      function itemDetail(item) {
+        return [item.location_note, item.price_note, item.notes || item.raw_content]
+          .filter(Boolean)
+          .join(" · ");
+      }
+
+      function renderDay(day, index) {
+        const section = document.createElement("article");
+        section.className = "day";
+        section.innerHTML = `
+          <div class="date"></div>
+          <div>
+            <h2 class="day-title"></h2>
+            <div class="slots"></div>
+          </div>
+        `;
+        section.querySelector(".date").textContent = dayNumber(day.label, index);
+        section.querySelector(".day-title").textContent = day.label || "Scheduled";
+
+        const slots = section.querySelector(".slots");
+        (day.items || []).forEach((item) => {
+          const slot = document.createElement("article");
+          slot.className = "slot";
+          slot.innerHTML = `
+            <div class="time"></div>
+            <div>
+              <div class="slot-title"></div>
+              <div class="slot-detail"></div>
+            </div>
+          `;
+          slot.querySelector(".time").textContent = itemTime(item);
+          slot.querySelector(".slot-title").textContent = item.title || item.raw_content || "Saved item";
+          slot.querySelector(".slot-detail").textContent = itemDetail(item);
+          slots.appendChild(slot);
+        });
+
+        return section;
+      }
+
+      function render(raw) {
+        const output = unwrapToolOutput(raw);
+        if (!output) return;
+        if (output.error) {
+          showError(output.error);
+          return;
+        }
+
+        const days = Array.isArray(output.days) ? output.days : [];
+        if (days.length === 0 && !output.trip?.title) {
+          showEmpty("No itinerary data was returned.");
+          return;
+        }
+
+        elements.empty.hidden = true;
+        elements.empty.className = "empty";
+        elements.content.hidden = false;
+        elements.tripTitle.textContent = output.trip?.title || "Trip";
+        elements.summary.textContent =
+          (output.counts?.scheduled || 0) + " scheduled";
+
+        elements.days.replaceChildren();
+        days.forEach((day, index) => elements.days.appendChild(renderDay(day, index)));
+
+        const gaps = Array.isArray(output.gaps) ? output.gaps : [];
+        elements.gaps.hidden = gaps.length === 0;
+        elements.gaps.textContent = gaps.join(" ");
+      }
+
+      function currentToolOutput() {
+        return window.openai?.toolOutput;
+      }
+
+      render(currentToolOutput());
+
+      let checksRemaining = 50;
+      const checkForLateOutput = window.setInterval(() => {
+        render(currentToolOutput());
+        checksRemaining -= 1;
+        if (checksRemaining <= 0 || currentToolOutput()) {
+          window.clearInterval(checkForLateOutput);
+        }
+      }, 100);
+
+      window.addEventListener(
+        "message",
+        (event) => {
+          let message = event.data;
+          if (typeof message === "string") {
+            try {
+              message = JSON.parse(message);
+            } catch {
+              return;
+            }
+          }
+          if (!message || message.jsonrpc !== "2.0") return;
+          if (message.method !== "ui/notifications/tool-result") return;
+          render(message.params);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener(
+        "openai:set_globals",
+        (event) => {
+          render(event.detail?.globals?.toolOutput ?? window.openai?.toolOutput);
+        },
+        { passive: true }
+      );
+    </script>
+  </body>
+</html>

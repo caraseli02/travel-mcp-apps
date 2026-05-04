@@ -32,8 +32,8 @@ server = FastMCP(
     name="generate_packing_list",
     description="Generate packing list based on weather and trip duration",
     meta={
-        "ui": {"resourceUri": "ui://packing/checklist-v1.html"},
-        "openai/outputTemplate": "ui://packing/checklist-v1.html",
+        "ui": {"resourceUri": "ui://packing/checklist-v2.html"},
+        "openai/outputTemplate": "ui://packing/checklist-v2.html",
     },
 )
 def generate_packing_list(
@@ -81,7 +81,7 @@ WIDGETS_DIR = Path(__file__).resolve().parent / "widgets"
 
 
 @server.resource(
-    "ui://packing/checklist-v1.html",
+    "ui://packing/checklist-v2.html",
     name="packing_checklist_ui",
     description="Packing checklist UI",
     mime_type="text/html;profile=mcp-app",
@@ -97,7 +97,7 @@ WIDGETS_DIR = Path(__file__).resolve().parent / "widgets"
     },
 )
 def packing_checklist_ui() -> str:
-    return (WIDGETS_DIR / "packing_checklist_v1.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "packing_checklist_v2.html").read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":

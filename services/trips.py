@@ -177,6 +177,52 @@ def build_board(trip: Trip, items: list[TripItem]) -> dict[str, Any]:
     }
 
 
+def build_itinerary(trip: Trip, items: list[TripItem]) -> dict[str, Any]:
+    scheduled = [
+        item
+        for item in items
+        if item.day_label and item.status not in {"inbox", "rejected"}
+    ]
+
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for item in scheduled:
+        grouped.setdefault(item.day_label or "Unscheduled", []).append(item_to_dict(item))
+
+    def day_sort_key(day_label: str) -> tuple[int, str]:
+        match = re.search(r"\d+", day_label)
+        if match:
+            return (int(match.group()), day_label)
+        return (999, day_label)
+
+    days = [
+        {"label": label, "items": grouped[label]}
+        for label in sorted(grouped, key=day_sort_key)
+    ]
+
+    unscheduled = [
+        item_to_dict(item)
+        for item in items
+        if not item.day_label and item.status in {"shortlisted", "booked", "needs_review"}
+    ]
+
+    gaps: list[str] = []
+    if not days:
+        gaps.append("No day-by-day itinerary items have been assigned yet.")
+    if unscheduled:
+        gaps.append(f"{len(unscheduled)} saved item(s) still need a day assignment.")
+
+    return {
+        "trip": trip_to_dict(trip),
+        "days": days,
+        "unscheduled": unscheduled,
+        "gaps": gaps,
+        "counts": {
+            "scheduled": len(scheduled),
+            "unscheduled": len(unscheduled),
+        },
+    }
+
+
 def summarize_items(items: list[TripItem]) -> dict[str, Any]:
     by_status = {status: 0 for status in sorted(ITEM_STATUSES)}
     by_type = {item_type: 0 for item_type in sorted(ITEM_TYPES)}

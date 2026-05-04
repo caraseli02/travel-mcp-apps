@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #101214;
+        --muted: #6b7280;
+        --surface: #ffffff;
+        --soft: #f6f7f8;
+        --line: #e5e7eb;
+        --accent: #2f6f4e;
+        --accent-soft: #e8f3ed;
+        --danger: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 280px;
+        color: var(--ink);
+        background: var(--surface);
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .guide {
+        min-height: 320px;
+        padding: 16px;
+      }
+
+      .empty,
+      .error {
+        display: grid;
+        min-height: 280px;
+        place-items: center;
+        padding: 32px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+        text-align: center;
+      }
+
+      .empty::before {
+        content: "";
+        display: block;
+        width: 40px;
+        height: 40px;
+        margin: 0 auto 14px;
+        border-radius: 50%;
+        background: conic-gradient(var(--accent), rgba(47, 111, 78, 0.08));
+        animation: spin 1.2s linear infinite;
+      }
+
+      .error {
+        color: var(--danger);
+      }
+
+      .content {
+        display: grid;
+        gap: 14px;
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: start;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0 0 6px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--accent);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1.08;
+        letter-spacing: 0;
+      }
+
+      .country {
+        margin: 4px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .best-time {
+        align-self: start;
+        max-width: 150px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.3;
+        text-align: right;
+      }
+
+      .overview {
+        margin: 0;
+        color: #374151;
+        font-size: 14px;
+        line-height: 1.42;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .stat {
+        min-width: 0;
+        padding: 10px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .stat-label {
+        display: block;
+        color: var(--muted);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+      }
+
+      .stat-value {
+        display: block;
+        margin-top: 5px;
+        overflow-wrap: anywhere;
+        font-size: 17px;
+        font-weight: 700;
+      }
+
+      .section {
+        display: grid;
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      .section-title {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+      }
+
+      .tips,
+      .activities {
+        display: grid;
+        gap: 8px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .tip {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 8px;
+        align-items: start;
+      }
+
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 22px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: capitalize;
+      }
+
+      .tip-text,
+      .activity-description {
+        min-width: 0;
+        color: #374151;
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.34;
+      }
+
+      .activity {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: start;
+        padding-top: 8px;
+        border-top: 1px solid var(--line);
+      }
+
+      .activity:first-child {
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      .activity-name {
+        margin: 0 0 3px;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.25;
+      }
+
+      .activity-meta {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.3;
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .empty::before {
+          animation: none;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .guide {
+          min-height: 0;
+          padding: 14px;
+        }
+
+        .header,
+        .stats,
+        .activity {
+          grid-template-columns: 1fr;
+        }
+
+        .best-time,
+        .activity-meta {
+          max-width: none;
+          text-align: left;
+          white-space: normal;
+        }
+
+        .tip {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ChatGPT-native v4 surface pass */
+      :root {
+        --ink: #171412;
+        --muted: #6f6a64;
+        --surface: #ffffff;
+        --soft: #fbfbfb;
+        --line: #e8e3dc;
+        --accent: #9a4f2f;
+        --accent-soft: #fff3ec;
+        --danger: #a03a2b;
+      }
+
+      body {
+        color: var(--ink);
+        background: Canvas;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+        overflow-x: hidden;
+      }
+
+      .guide {
+        min-height: 0;
+        padding: 14px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .empty,
+      .error {
+        min-height: 236px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--soft);
+      }
+
+      .empty::before {
+        display: none;
+      }
+
+      .content {
+        gap: 12px;
+      }
+
+      .header {
+        gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        color: #9b948c;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+      }
+
+      .eyebrow::before {
+        display: none;
+      }
+
+      h1 {
+        color: var(--ink);
+        font-size: 19px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .country,
+      .best-time,
+      .overview,
+      .tip-text,
+      .activity-description,
+      .activity-meta {
+        color: var(--muted);
+      }
+
+      .stats {
+        gap: 8px;
+      }
+
+      .stat {
+        padding: 9px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .stat-value {
+        color: var(--ink);
+        font-size: 17px;
+      }
+
+      .section {
+        gap: 8px;
+        padding-top: 12px;
+        border-top: 1px solid var(--line);
+      }
+
+      .section-title {
+        color: var(--ink);
+        font-size: 12px;
+        letter-spacing: 0.04em;
+      }
+
+      .badge {
+        min-height: 20px;
+        background: var(--accent-soft);
+        color: #73351e;
+        font-weight: 620;
+      }
+
+      .activity {
+        min-width: 0;
+        padding: 10px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .activity-name {
+        color: var(--ink);
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="guide" id="guide" aria-live="polite">
+      <section class="empty" id="empty">Waiting for destination data...</section>
+
+      <section class="content" id="content" hidden>
+        <header class="header">
+          <div>
+            <p class="eyebrow">Destination guide</p>
+            <h1 id="city">Destination</h1>
+            <p class="country" id="country"></p>
+          </div>
+          <p class="best-time" id="bestTime"></p>
+        </header>
+
+        <p class="overview" id="overview"></p>
+
+        <section class="stats" aria-label="Destination summary">
+          <div class="stat">
+            <span class="stat-label">Activities</span>
+            <span class="stat-value" id="activityCount"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Free picks</span>
+            <span class="stat-value" id="freeCount"></span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Outdoor</span>
+            <span class="stat-value" id="outdoorCount"></span>
+          </div>
+        </section>
+
+        <section class="section" aria-label="Local tips">
+          <h2 class="section-title">Travel notes</h2>
+          <ul class="tips" id="tips"></ul>
+        </section>
+
+        <section class="section" aria-label="Suggested activities">
+          <h2 class="section-title">Good first picks</h2>
+          <ul class="activities" id="activities"></ul>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const elements = {
+        empty: document.getElementById("empty"),
+        content: document.getElementById("content"),
+        city: document.getElementById("city"),
+        country: document.getElementById("country"),
+        bestTime: document.getElementById("bestTime"),
+        overview: document.getElementById("overview"),
+        activityCount: document.getElementById("activityCount"),
+        freeCount: document.getElementById("freeCount"),
+        outdoorCount: document.getElementById("outdoorCount"),
+        tips: document.getElementById("tips"),
+        activities: document.getElementById("activities"),
+      };
+
+      function unwrapToolOutput(raw) {
+        return raw?.structuredContent ?? raw?.toolOutput ?? raw;
+      }
+
+      function showError(message) {
+        elements.empty.textContent = message || "Destination data is unavailable.";
+        elements.empty.className = "error";
+        elements.empty.hidden = false;
+        elements.content.hidden = true;
+      }
+
+      function money(value) {
+        if (value === 0) return "free";
+        if (value === undefined || value === null) return "cost varies";
+        return "$" + value;
+      }
+
+      function renderTips(tips) {
+        elements.tips.replaceChildren();
+        (tips || []).slice(0, 3).forEach((tip) => {
+          const item = document.createElement("li");
+          item.className = "tip";
+          item.innerHTML = `
+            <span class="badge"></span>
+            <span class="tip-text"></span>
+          `;
+          item.querySelector(".badge").textContent = tip.category || "Tip";
+          item.querySelector(".tip-text").textContent = tip.text || "";
+          elements.tips.appendChild(item);
+        });
+      }
+
+      function renderActivities(activities) {
+        elements.activities.replaceChildren();
+        (activities || []).slice(0, 3).forEach((activity) => {
+          const item = document.createElement("li");
+          item.className = "activity";
+          item.innerHTML = `
+            <div>
+              <h3 class="activity-name"></h3>
+              <p class="activity-description"></p>
+            </div>
+            <div class="activity-meta"></div>
+          `;
+          item.querySelector(".activity-name").textContent = activity.name || "Activity";
+          item.querySelector(".activity-description").textContent = activity.description || "";
+          item.querySelector(".activity-meta").textContent =
+            (activity.duration_hours || "?") + "h · " + money(activity.cost_usd);
+          elements.activities.appendChild(item);
+        });
+      }
+
+      function render(raw) {
+        const output = unwrapToolOutput(raw);
+        if (!output) return;
+
+        if (output.error) {
+          showError(output.error);
+          return;
+        }
+
+        const activities = Array.isArray(output.activities) ? output.activities : [];
+        elements.empty.hidden = true;
+        elements.empty.className = "empty";
+        elements.content.hidden = false;
+
+        elements.city.textContent = output.city || "Destination";
+        elements.country.textContent = output.country || "";
+        elements.bestTime.textContent = output.best_time ? "Best time: " + output.best_time : "";
+        elements.overview.textContent = output.overview || "";
+        elements.activityCount.textContent = activities.length;
+        elements.freeCount.textContent = activities.filter((activity) => activity.cost_usd === 0).length;
+        elements.outdoorCount.textContent =
+          activities.filter((activity) => activity.weather_dependent).length;
+
+        renderTips(output.tips);
+        renderActivities(activities);
+      }
+
+      function currentToolOutput() {
+        return window.openai?.toolOutput;
+      }
+
+      render(currentToolOutput());
+
+      let checksRemaining = 50;
+      const checkForLateOutput = window.setInterval(() => {
+        render(currentToolOutput());
+        checksRemaining -= 1;
+        if (checksRemaining <= 0 || currentToolOutput()) {
+          window.clearInterval(checkForLateOutput);
+        }
+      }, 100);
+
+      window.addEventListener(
+        "message",
+        (event) => {
+          let message = event.data;
+          if (typeof message === "string") {
+            try {
+              message = JSON.parse(message);
+            } catch {
+              return;
+            }
+          }
+          if (!message || message.jsonrpc !== "2.0") return;
+          if (message.method !== "ui/notifications/tool-result") return;
+          render(message.params);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener(
+        "openai:set_globals",
+        (event) => {
+          render(event.detail?.globals?.toolOutput ?? window.openai?.toolOutput);
+        },
+        { passive: true }
+      );
+    </script>
+  </body>
+</html>

@@ -38,8 +38,8 @@ server = FastMCP(
     name="get_current_weather",
     description="Get current weather for a city and render it in the weather dashboard",
     meta={
-        "ui": {"resourceUri": "ui://weather/dashboard-v4.html"},
-        "openai/outputTemplate": "ui://weather/dashboard-v4.html",
+        "ui": {"resourceUri": "ui://weather/dashboard-v5.html"},
+        "openai/outputTemplate": "ui://weather/dashboard-v5.html",
     },
 )
 async def get_current_weather(city: str) -> CallToolResult:
@@ -72,8 +72,8 @@ async def get_current_weather(city: str) -> CallToolResult:
         "For trips further out, use climate averages or historical data for the destination month."
     ),
     meta={
-        "ui": {"resourceUri": "ui://weather/forecast-chart-v1.html"},
-        "openai/outputTemplate": "ui://weather/forecast-chart-v1.html",
+        "ui": {"resourceUri": "ui://weather/forecast-chart-v2.html"},
+        "openai/outputTemplate": "ui://weather/forecast-chart-v2.html",
     },
 )
 async def get_forecast(city: str, days: int = 5) -> CallToolResult:
@@ -135,7 +135,7 @@ def weather_comparison(origin: str, destination: str, travel_date: str) -> list[
 
 
 @server.resource(
-    "ui://weather/dashboard-v4.html",
+    "ui://weather/dashboard-v5.html",
     name="weather_dashboard_ui",
     description="Interactive weather dashboard UI",
     mime_type="text/html;profile=mcp-app",
@@ -151,11 +151,11 @@ def weather_comparison(origin: str, destination: str, travel_date: str) -> list[
     },
 )
 def weather_dashboard_ui() -> str:
-    return (WIDGETS_DIR / "weather_dashboard_v4.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "weather_dashboard_v5.html").read_text(encoding="utf-8")
 
 
 @server.resource(
-    "ui://weather/forecast-chart-v1.html",
+    "ui://weather/forecast-chart-v2.html",
     name="weather_forecast_chart_ui",
     description="5-day weather forecast chart UI",
     mime_type="text/html;profile=mcp-app",
@@ -171,7 +171,7 @@ def weather_dashboard_ui() -> str:
     },
 )
 def weather_forecast_chart_ui() -> str:
-    return (WIDGETS_DIR / "weather_forecast_chart_v1.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "weather_forecast_chart_v2.html").read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":

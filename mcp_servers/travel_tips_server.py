@@ -34,8 +34,8 @@ server = FastMCP(
     name="get_destination_tips",
     description="Get travel tips and recommendations for a destination",
     meta={
-        "ui": {"resourceUri": "ui://travel/destination-guide-v1.html"},
-        "openai/outputTemplate": "ui://travel/destination-guide-v1.html",
+        "ui": {"resourceUri": "ui://travel/destination-guide-v2.html"},
+        "openai/outputTemplate": "ui://travel/destination-guide-v2.html",
     },
 )
 def get_destination_tips(city: str) -> CallToolResult:
@@ -64,8 +64,8 @@ def get_destination_tips(city: str) -> CallToolResult:
     name="recommend_activities",
     description="Recommend activities based on weather and season",
     meta={
-        "ui": {"resourceUri": "ui://travel/activity-cards-v1.html"},
-        "openai/outputTemplate": "ui://travel/activity-cards-v1.html",
+        "ui": {"resourceUri": "ui://travel/activity-cards-v2.html"},
+        "openai/outputTemplate": "ui://travel/activity-cards-v2.html",
     },
 )
 def recommend_activities(city: str, weather: str, season: str) -> CallToolResult:
@@ -108,7 +108,7 @@ def destination_briefing(city: str, duration_days: int) -> list[dict]:
 
 
 @server.resource(
-    "ui://travel/destination-guide-v1.html",
+    "ui://travel/destination-guide-v2.html",
     name="travel_destination_guide_ui",
     description="Destination guide UI",
     mime_type="text/html;profile=mcp-app",
@@ -124,13 +124,13 @@ def destination_briefing(city: str, duration_days: int) -> list[dict]:
     },
 )
 def travel_destination_guide_ui() -> str:
-    return (WIDGETS_DIR / "travel_destination_guide_v1.html").read_text(
+    return (WIDGETS_DIR / "travel_destination_guide_v2.html").read_text(
         encoding="utf-8"
     )
 
 
 @server.resource(
-    "ui://travel/activity-cards-v1.html",
+    "ui://travel/activity-cards-v2.html",
     name="travel_activity_cards_ui",
     description="Activity recommendation cards UI",
     mime_type="text/html;profile=mcp-app",
@@ -146,7 +146,7 @@ def travel_destination_guide_ui() -> str:
     },
 )
 def travel_activity_cards_ui() -> str:
-    return (WIDGETS_DIR / "travel_activity_cards_v1.html").read_text(
+    return (WIDGETS_DIR / "travel_activity_cards_v2.html").read_text(
         encoding="utf-8"
     )
 

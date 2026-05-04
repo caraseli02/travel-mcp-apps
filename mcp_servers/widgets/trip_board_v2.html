@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #14171a;
+        --muted: #667085;
+        --surface: #ffffff;
+        --soft: #f6f8fa;
+        --line: #e4e7ec;
+        --accent: #245f73;
+        --accent-soft: #e8f3f6;
+        --green: #207044;
+        --green-soft: #e8f3ed;
+        --amber: #9a5b00;
+        --amber-soft: #fff6df;
+        --danger: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 280px;
+        color: var(--ink);
+        background: var(--surface);
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .board {
+        min-height: 360px;
+        padding: 16px;
+      }
+
+      .empty,
+      .error {
+        display: grid;
+        min-height: 300px;
+        place-items: center;
+        padding: 28px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.45;
+        text-align: center;
+      }
+
+      .error {
+        color: var(--danger);
+      }
+
+      .content {
+        display: grid;
+        gap: 14px;
+      }
+
+      .header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: start;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        gap: 7px;
+        align-items: center;
+        margin: 0 0 6px;
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 750;
+        line-height: 1.1;
+        letter-spacing: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .summary {
+        min-width: 92px;
+        padding: 7px 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
+        color: #344054;
+        font-size: 12px;
+        font-weight: 750;
+        line-height: 1.2;
+        text-align: center;
+      }
+
+      .lanes {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(190px, 1fr));
+        gap: 10px;
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+
+      .lane {
+        display: grid;
+        align-content: start;
+        gap: 8px;
+        min-height: 220px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--soft);
+      }
+
+      .lane-title {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 0;
+        color: #344054;
+        font-size: 13px;
+        font-weight: 800;
+        line-height: 1.25;
+      }
+
+      .lane-count {
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .card {
+        display: grid;
+        gap: 7px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .card-title {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 750;
+        line-height: 1.26;
+        overflow-wrap: anywhere;
+      }
+
+      .raw,
+      .meta,
+      .missing {
+        margin: 0;
+        color: #344054;
+        font-size: 12px;
+        font-weight: 550;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        color: var(--muted);
+      }
+
+      .tag {
+        display: inline-flex;
+        max-width: 100%;
+        min-height: 21px;
+        align-items: center;
+        padding: 3px 7px;
+        border-radius: 999px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.2;
+        text-transform: capitalize;
+      }
+
+      .tag.booked {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .tag.missing {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (max-width: 760px) {
+        .board {
+          min-height: 0;
+          padding: 14px;
+        }
+
+        .header {
+          grid-template-columns: 1fr;
+        }
+
+        .summary {
+          justify-self: start;
+          text-align: left;
+        }
+
+        .lanes {
+          grid-template-columns: 1fr;
+          overflow-x: visible;
+        }
+      }
+
+      /* ChatGPT-native v4 surface pass */
+      :root {
+        --ink: #171412;
+        --muted: #6f6a64;
+        --surface: #ffffff;
+        --soft: #fbfbfb;
+        --line: #e8e3dc;
+        --accent: #9a4f2f;
+        --accent-soft: #fff3ec;
+        --green: #376b4a;
+        --green-soft: #edf7ef;
+        --amber: #80611c;
+        --amber-soft: #fff8e6;
+        --danger: #a03a2b;
+      }
+
+      body {
+        color: var(--ink);
+        background: Canvas;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.45;
+        overflow-x: hidden;
+      }
+
+      .board {
+        min-height: 0;
+        padding: 14px;
+        background: var(--surface);
+        overflow: hidden;
+      }
+
+      .empty,
+      .error {
+        min-height: 236px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--soft);
+      }
+
+      .content {
+        gap: 12px;
+      }
+
+      .header {
+        gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .eyebrow {
+        color: #9b948c;
+        font-weight: 650;
+        letter-spacing: 0.06em;
+      }
+
+      .eyebrow::before {
+        display: none;
+      }
+
+      h1 {
+        color: var(--ink);
+        font-size: 19px;
+        line-height: 1.25;
+      }
+
+      .summary {
+        border: 1px solid var(--line);
+        background: var(--soft);
+        color: var(--muted);
+      }
+
+      .lanes {
+        grid-template-columns: repeat(5, minmax(168px, 1fr));
+        gap: 8px;
+        padding-bottom: 2px;
+      }
+
+      .lane {
+        min-height: 184px;
+        padding: 9px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--soft);
+      }
+
+      .lane-title {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--surface);
+      }
+
+      .card-title {
+        color: var(--ink);
+        font-size: 12px;
+      }
+
+      .raw,
+      .meta,
+      .missing {
+        color: var(--muted);
+      }
+
+      .tag {
+        background: var(--accent-soft);
+        color: #73351e;
+        font-weight: 620;
+      }
+
+      .tag.booked {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+
+      .tag.missing {
+        background: var(--amber-soft);
+        color: var(--amber);
+      }
+
+      @media (max-width: 760px) {
+        .lanes {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="board" aria-live="polite">
+      <section class="empty" id="empty">Waiting for trip board data...</section>
+
+      <section class="content" id="content" hidden>
+        <header class="header">
+          <div>
+            <p class="eyebrow">Trip Board</p>
+            <h1 id="tripTitle">Trip</h1>
+          </div>
+          <div class="summary" id="summary">0 saved</div>
+        </header>
+        <section class="lanes" id="lanes"></section>
+      </section>
+    </main>
+
+    <script>
+      const laneConfig = [
+        ["open_decisions", "Open Decisions"],
+        ["shortlisted", "Shortlisted"],
+        ["booked", "Booked"],
+        ["itinerary_draft", "Itinerary Draft"],
+        ["missing_pieces", "Missing Pieces"],
+      ];
+
+      const elements = {
+        empty: document.getElementById("empty"),
+        content: document.getElementById("content"),
+        tripTitle: document.getElementById("tripTitle"),
+        summary: document.getElementById("summary"),
+        lanes: document.getElementById("lanes"),
+      };
+
+      function unwrapToolOutput(raw) {
+        return raw?.structuredContent ?? raw?.toolOutput ?? raw;
+      }
+
+      function showError(message) {
+        elements.empty.textContent = message || "Trip board is unavailable.";
+        elements.empty.className = "error";
+        elements.empty.hidden = false;
+        elements.content.hidden = true;
+      }
+
+      function showEmpty(message) {
+        elements.empty.textContent = message;
+        elements.empty.className = "empty";
+        elements.empty.hidden = false;
+        elements.content.hidden = true;
+      }
+
+      function itemCard(item) {
+        const card = document.createElement("article");
+        card.className = "card";
+        card.innerHTML = `
+          <div class="meta">
+            <span class="tag"></span>
+            <span class="day" hidden></span>
+          </div>
+          <h2 class="card-title"></h2>
+          <p class="raw"></p>
+        `;
+        const tag = card.querySelector(".tag");
+        tag.textContent = item.item_type || "note";
+        if (item.status === "booked") tag.classList.add("booked");
+        const day = card.querySelector(".day");
+        if (item.day_label) {
+          day.hidden = false;
+          day.textContent = item.day_label;
+        }
+        card.querySelector(".card-title").textContent = item.title || item.raw_content || "Saved item";
+        card.querySelector(".raw").textContent = item.notes || item.raw_content || "";
+        return card;
+      }
+
+      function missingCard(text) {
+        const card = document.createElement("article");
+        card.className = "card";
+        card.innerHTML = `<span class="tag missing">missing</span><p class="missing"></p>`;
+        card.querySelector(".missing").textContent = text;
+        return card;
+      }
+
+      function renderLane(key, label, values) {
+        const lane = document.createElement("section");
+        lane.className = "lane";
+        lane.innerHTML = `
+          <h2 class="lane-title">
+            <span></span>
+            <span class="lane-count"></span>
+          </h2>
+        `;
+        lane.querySelector(".lane-title span").textContent = label;
+        lane.querySelector(".lane-count").textContent = values.length;
+        if (values.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "raw";
+          empty.textContent = "Nothing here yet.";
+          lane.appendChild(empty);
+          return lane;
+        }
+        values.forEach((value) => {
+          lane.appendChild(typeof value === "string" ? missingCard(value) : itemCard(value));
+        });
+        return lane;
+      }
+
+      function render(raw) {
+        const output = unwrapToolOutput(raw);
+        if (!output) return;
+        if (output.error) {
+          showError(output.error);
+          return;
+        }
+
+        const trip = output.trip || {};
+        const lanes = output.lanes || {};
+        if (!trip.title && Object.keys(lanes).length === 0) {
+          showEmpty("No trip board data was returned.");
+          return;
+        }
+
+        const total = output.counts?.total ?? 0;
+        elements.empty.hidden = true;
+        elements.content.hidden = false;
+        elements.tripTitle.textContent = trip.title || "Trip";
+        elements.summary.textContent = total + " saved item" + (total === 1 ? "" : "s");
+        elements.lanes.replaceChildren();
+        laneConfig.forEach(([key, label]) => {
+          const values = Array.isArray(lanes[key]) ? lanes[key] : [];
+          elements.lanes.appendChild(renderLane(key, label, values));
+        });
+      }
+
+      function currentToolOutput() {
+        return window.openai?.toolOutput;
+      }
+
+      render(currentToolOutput());
+
+      let checksRemaining = 50;
+      const checkForLateOutput = window.setInterval(() => {
+        render(currentToolOutput());
+        checksRemaining -= 1;
+        if (checksRemaining <= 0 || currentToolOutput()) {
+          window.clearInterval(checkForLateOutput);
+        }
+      }, 100);
+
+      window.addEventListener(
+        "message",
+        (event) => {
+          let message = event.data;
+          if (typeof message === "string") {
+            try {
+              message = JSON.parse(message);
+            } catch {
+              return;
+            }
+          }
+          if (!message || message.jsonrpc !== "2.0") return;
+          if (message.method !== "ui/notifications/tool-result") return;
+          render(message.params);
+        },
+        { passive: true }
+      );
+
+      window.addEventListener(
+        "openai:set_globals",
+        (event) => {
+          render(event.detail?.globals?.toolOutput ?? window.openai?.toolOutput);
+        },
+        { passive: true }
+      );
+    </script>
+  </body>
+</html>
