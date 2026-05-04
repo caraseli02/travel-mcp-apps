@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Travel MCP Widgets — v3 ChatGPT Native</title>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  /* System tokens — mirrors ChatGPT palette */
+  --bg:#ffffff;
+  --surface:#f7f7f8;
+  --surface-hover:#ececec;
+  --border:#e5e5e5;
+  --border-subtle:#efefef;
+
+  --text:#0d0d0d;
+  --text-secondary:#6b6b6b;
+  --text-muted:#999;
+
+  /* Brand accent — used ONLY on badges, buttons, and subtle highlights */
+  --accent:#8b5cf6;
+  --accent-soft:#f3f0ff;
+
+  /* Category tints — minimal, for small badges only */
+  --cat-flight:#3b82f6;
+  --cat-stay:#a855f7;
+  --cat-food:#f59e0b;
+  --cat-activity:#22c55e;
+  --cat-transport:#64748b;
+  --cat-question:#eab308;
+  --cat-action:#6366f1;
+  --cat-constraint:#06b6d4;
+
+  --radius:12px;
+  --radius-sm:8px;
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+}
+
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* ── Nav ── */
+.nav{
+  position:sticky;top:0;z-index:10;
+  background:rgba(255,255,255,0.92);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border-subtle);
+  display:flex;gap:0;padding:0 16px;
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+}
+.nav::-webkit-scrollbar{display:none}
+.nav a{
+  padding:12px 12px;
+  font-size:12px;font-weight:500;
+  color:var(--text-muted);
+  text-decoration:none;white-space:nowrap;
+  border-bottom:2px solid transparent;
+  transition:color 150ms,border-color 150ms;
+}
+.nav a:hover{color:var(--text)}
+.nav a.active{color:var(--text);border-bottom-color:var(--text)}
+
+/* ── Section ── */
+.section{
+  max-width:640px;
+  margin:0 auto;
+  padding:28px 16px;
+}
+.section+.section{border-top:1px solid var(--border-subtle)}
+
+.section-label{
+  font-size:11px;font-weight:600;letter-spacing:0.04em;
+  text-transform:uppercase;color:var(--text-muted);
+  margin-bottom:4px;
+}
+.section-title{
+  font-size:15px;font-weight:600;line-height:1.3;
+  margin-bottom:4px;
+}
+.section-desc{
+  font-size:13px;color:var(--text-secondary);line-height:1.45;
+  margin-bottom:16px;
+}
+
+/* ══════════════════════════════════════
+   INLINE CARD — Activity
+   ══════════════════════════════════════ */
+.card-stack{display:flex;flex-direction:column;gap:8px}
+
+.act-card{
+  display:flex;gap:12px;
+  padding:12px;
+  border:1px solid var(--border-subtle);
+  border-radius:var(--radius);
+  transition:background 120ms;
+  cursor:pointer;
+}
+.act-card:hover{background:var(--surface)}
+
+.act-icon{
+  width:40px;height:40px;
+  border-radius:var(--radius-sm);
+  background:var(--surface);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+
+.act-body{flex:1;min-width:0}
+.act-body h3{font-size:13px;font-weight:600;line-height:1.35;margin-bottom:1px}
+.act-body .desc{
+  font-size:12px;color:var(--text-secondary);line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+.act-meta{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
+
+.badge{
+  font-size:10px;font-weight:600;
+  padding:2px 7px;border-radius:6px;
+  white-space:nowrap;
+}
+.badge-landmark{background:#eff6ff;color:var(--cat-flight)}
+.badge-museum{background:#faf5ff;color:var(--cat-stay)}
+.badge-restaurant{background:#fffbeb;color:var(--cat-food)}
+
+.meta-text{font-size:11px;color:var(--text-muted)}
+
+/* ══════════════════════════════════════
+   INLINE CARD — Trip Board
+   ══════════════════════════════════════ */
+.board-header{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin-bottom:8px;
+}
+.board-header h3{font-size:13px;font-weight:600}
+.board-pct{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+
+.progress-track{
+  height:3px;background:var(--border);
+  border-radius:2px;overflow:hidden;
+  margin-bottom:16px;
+}
+.progress-fill{height:100%;border-radius:2px;background:var(--text-muted);width:42%}
+
+.kanban{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;
+}
+@media(max-width:560px){.kanban{grid-template-columns:1fr 1fr}}
+
+.kanban-col{
+  background:var(--surface);
+  border-radius:var(--radius);
+  padding:8px;
+  display:flex;flex-direction:column;gap:4px;
+}
+.col-label{
+  font-size:10px;font-weight:600;letter-spacing:0.04em;
+  text-transform:uppercase;color:var(--text-muted);
+  margin-bottom:4px;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.col-count{
+  font-size:10px;font-weight:600;
+  background:var(--border);border-radius:4px;
+  padding:0 5px;line-height:18px;
+}
+
+.tcard{
+  padding:6px 8px;
+  background:var(--bg);
+  border:1px solid var(--border-subtle);
+  border-radius:var(--radius-sm);
+  cursor:grab;
+}
+.tcard .tc-title{font-size:11px;font-weight:600;line-height:1.3}
+.tcard .tc-sub{font-size:10px;color:var(--text-muted);margin-top:1px}
+.tcard .tc-badge{
+  display:inline-block;margin-top:3px;
+  font-size:9px;font-weight:600;padding:1px 5px;border-radius:4px;
+}
+.tc-flight{background:#eff6ff;color:var(--cat-flight)}
+.tc-stay{background:#faf5ff;color:var(--cat-stay)}
+.tc-question{background:#fefce8;color:var(--cat-question)}
+.tc-action{background:#eef2ff;color:var(--cat-action)}
+.tc-constraint{background:#ecfeff;color:var(--cat-constraint)}
+.tc-restaurant{background:#fffbeb;color:var(--cat-food)}
+.tc-activity{background:#f0fdf4;color:var(--cat-activity)}
+.tc-museum{background:#faf5ff;color:var(--cat-stay)}
+
+.col-empty{
+  padding:12px 8px;
+  font-size:11px;color:var(--text-muted);
+  border:1px dashed var(--border);
+  border-radius:var(--radius-sm);
+  text-align:center;
+  flex:1;display:flex;align-items:center;justify-content:center;
+  min-height:48px;
+}
+
+/* ══════════════════════════════════════
+   INLINE CARD — Timeline
+   ══════════════════════════════════════ */
+.day-block{margin-bottom:24px}
+.day-block:last-child{margin-bottom:0}
+
+.day-header{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:10px;
+}
+.day-num{
+  font-size:12px;font-weight:700;
+  background:var(--surface);
+  border-radius:6px;
+  width:28px;height:28px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.day-meta h4{font-size:13px;font-weight:600;line-height:1.3}
+.day-meta span{font-size:12px;color:var(--text-muted)}
+
+.timeline{
+  margin-left:14px;
+  border-left:1.5px solid var(--border);
+  padding-left:16px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.tl-slot{
+  padding:8px 10px;
+  background:var(--surface);
+  border-radius:var(--radius-sm);
+  position:relative;
+}
+.tl-slot::before{
+  content:'';position:absolute;
+  left:-22px;top:12px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--bg);
+  border:1.5px solid var(--border);
+}
+.tl-time{font-size:10px;font-weight:600;color:var(--text-muted);margin-bottom:1px;font-variant-numeric:tabular-nums}
+.tl-title{font-size:12px;font-weight:600;line-height:1.3}
+.tl-detail{font-size:11px;color:var(--text-muted);margin-top:1px}
+
+.tl-gap{
+  margin-left:0;padding-left:16px;
+}
+.tl-gap-inner{
+  border:1px dashed var(--border);
+  border-radius:var(--radius-sm);
+  padding:8px;text-align:center;
+  font-size:11px;color:var(--text-muted);
+  cursor:pointer;
+}
+.tl-gap-inner:hover{border-color:var(--text-muted);color:var(--text-secondary)}
+
+/* ══════════════════════════════════════
+   INLINE CARD — Budget
+   ══════════════════════════════════════ */
+.budget-card{
+  border:1px solid var(--border-subtle);
+  border-radius:var(--radius);
+  padding:14px;
+}
+.budget-top{
+  display:flex;justify-content:space-between;align-items:flex-end;
+  margin-bottom:8px;
+}
+.budget-top h3{font-size:12px;font-weight:600;color:var(--text-secondary)}
+.budget-total{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.budget-total .of{font-size:12px;font-weight:400;color:var(--text-muted)}
+
+.budget-bar{
+  height:4px;background:var(--border);
+  border-radius:2px;overflow:hidden;
+  margin-bottom:4px;
+}
+.budget-bar-fill{height:100%;border-radius:2px;background:var(--text-muted);width:32.5%}
+.budget-remaining{font-size:10px;color:var(--text-muted);text-align:right;margin-bottom:14px}
+
+.budget-rows{display:flex;flex-direction:column;gap:4px}
+.budget-row{
+  display:flex;align-items:center;gap:8px;
+  padding:4px 0;
+}
+.budget-row .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.budget-row .bname{font-size:12px;min-width:70px;color:var(--text-secondary)}
+.budget-row .btrack{flex:1;height:3px;background:var(--border-subtle);border-radius:2px;overflow:hidden}
+.budget-row .bfill{height:100%;border-radius:2px}
+.budget-row .bamt{font-size:12px;font-weight:600;min-width:40px;text-align:right;font-variant-numeric:tabular-nums;color:var(--text-secondary)}
+
+/* ══════════════════════════════════════
+   INLINE CARD — Packing
+   ══════════════════════════════════════ */
+.pack-header{
+  display:flex;align-items:center;gap:12px;
+  margin-bottom:14px;
+}
+.pack-ring{position:relative;width:44px;height:44px;flex-shrink:0}
+.pack-ring svg{transform:rotate(-90deg)}
+.pack-ring-bg{stroke:var(--border);fill:none;stroke-width:4}
+.pack-ring-fg{fill:none;stroke-width:4;stroke-linecap:round;stroke:var(--text-muted);stroke-dasharray:138.2;stroke-dashoffset:82.9}
+.pack-ring-label{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;
+}
+.pack-header-info h3{font-size:13px;font-weight:600}
+.pack-header-info p{font-size:12px;color:var(--text-muted)}
+
+.pack-group{
+  border:1px solid var(--border-subtle);
+  border-radius:var(--radius);
+  margin-bottom:6px;
+  overflow:hidden;
+}
+.pack-group:last-child{margin-bottom:0}
+.pack-group-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;
+  cursor:pointer;
+  transition:background 100ms;
+  user-select:none;-webkit-user-select:none;
+}
+.pack-group-head:hover{background:var(--surface)}
+.pack-group-head .pg-left{display:flex;align-items:center;gap:8px}
+.pack-group-head .pg-icon{font-size:16px}
+.pack-group-head .pg-label{font-size:12px;font-weight:600}
+.pack-group-head .pg-cnt{
+  font-size:10px;font-weight:600;
+  background:var(--surface);padding:1px 7px;border-radius:4px;
+}
+.pack-group-head .pg-chev{font-size:10px;color:var(--text-muted);transition:transform 200ms}
+.pack-group.closed .pg-chev{transform:rotate(-90deg)}
+.pack-group.closed .pack-items{max-height:0;opacity:0}
+.pack-items{
+  border-top:1px solid var(--border-subtle);
+  max-height:400px;opacity:1;
+  transition:max-height 200ms,opacity 150ms;
+  overflow:hidden;
+}
+.pack-item{
+  display:flex;align-items:center;gap:8px;
+  padding:6px 12px;
+  min-height:36px;
+}
+.check{
+  width:16px;height:16px;border-radius:4px;
+  border:1.5px solid var(--border);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:background 150ms,border-color 150ms;
+}
+.check.on{
+  background:var(--text);border-color:var(--text);
+}
+.check.on::after{
+  content:'';display:block;
+  width:8px;height:4px;
+  border-left:1.5px solid var(--bg);
+  border-bottom:1.5px solid var(--bg);
+  transform:rotate(-45deg) translateY(-0.5px);
+}
+.pack-item .item-name{
+  font-size:12px;flex:1;
+  transition:opacity 150ms;
+}
+.pack-item.done .item-name{
+  text-decoration:line-through;opacity:0.45;
+}
+.pack-item .weather{
+  font-size:9px;font-weight:600;
+  padding:1px 5px;border-radius:4px;
+  background:#fffbeb;color:var(--cat-food);
+}
+
+/* ── Responsive ── */
+@media(max-width:560px){
+  .kanban{grid-template-columns:1fr 1fr}
+  .budget-top{flex-direction:column;align-items:flex-start;gap:4px}
+}
+@media(max-width:400px){
+  .kanban{grid-template-columns:1fr}
+  .section{padding:20px 12px}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav" role="navigation" aria-label="Widget sections">
+  <a href="#activities" class="active">Activities</a>
+  <a href="#board">Board</a>
+  <a href="#timeline">Timeline</a>
+  <a href="#budget">Budget</a>
+  <a href="#packing">Packing</a>
+</nav>
+
+<!-- ═══ ACTIVITIES ═══ -->
+<section class="section" id="activities">
+  <div class="section-label">Explore</div>
+  <div class="section-title">Rome activities</div>
+  <div class="section-desc">Curated picks for late May. Save the ones that fit your trip.</div>
+
+  <div class="card-stack">
+    <div class="act-card" role="button" tabindex="0">
+      <div class="act-icon">🏛️</div>
+      <div class="act-body">
+        <h3>Colosseum &amp; Roman Forum</h3>
+        <div class="desc">Ancient amphitheater with underground tour access. Kids under 6 enter free.</div>
+        <div class="act-meta">
+          <span class="badge badge-landmark">Landmark</span>
+          <span class="meta-text">3h · €25</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="act-card" role="button" tabindex="0">
+      <div class="act-icon">🖼️</div>
+      <div class="act-body">
+        <h3>Vatican Museums &amp; Sistine Chapel</h3>
+        <div class="desc">Michelangelo's ceiling and Raphael's rooms. Book 2 weeks ahead.</div>
+        <div class="act-meta">
+          <span class="badge badge-museum">Museum</span>
+          <span class="meta-text">4h · €20</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="act-card" role="button" tabindex="0">
+      <div class="act-icon">🍝</div>
+      <div class="act-body">
+        <h3>Da Enzo al 29</h3>
+        <div class="desc">Trastevere institution. Cacio e pepe, supplì, carafe of house wine.</div>
+        <div class="act-meta">
+          <span class="badge badge-restaurant">Restaurant</span>
+          <span class="meta-text">~€25/person</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="act-card" role="button" tabindex="0">
+      <div class="act-icon">🎨</div>
+      <div class="act-body">
+        <h3>Borghese Gallery &amp; Gardens</h3>
+        <div class="desc">Bernini, Caravaggio, Raphael in a villa park. Timed entry, free for kids.</div>
+        <div class="act-meta">
+          <span class="badge badge-museum">Museum</span>
+          <span class="meta-text">2h · €15</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="act-card" role="button" tabindex="0">
+      <div class="act-icon">⛲</div>
+      <div class="act-body">
+        <h3>Pantheon → Navona → Trevi</h3>
+        <div class="desc">The classic Rome walk. 90 minutes of piazzas, fountains, and gelato stops.</div>
+        <div class="act-meta">
+          <span class="badge badge-landmark">Landmark</span>
+          <span class="meta-text">2h · Free</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ BOARD ═══ -->
+<section class="section" id="board">
+  <div class="section-label">Organize</div>
+  <div class="section-title">Trip board</div>
+  <div class="section-desc">Move items between columns as you decide. 42% planned so far.</div>
+
+  <div class="board-header">
+    <h3>Rome Family Trip</h3>
+    <span class="board-pct">42%</span>
+  </div>
+  <div class="progress-track"><div class="progress-fill"></div></div>
+
+  <div class="kanban">
+    <div class="kanban-col">
+      <div class="col-label"><span>Open</span><span class="col-count">5</span></div>
+      <div class="tcard"><div class="tc-title">Vueling BCN→FCO</div><div class="tc-sub">May 25 10:15 · €62/person</div><span class="tc-badge tc-flight">Flight</span></div>
+      <div class="tcard"><div class="tc-title">Airbnb Trastevere</div><div class="tc-sub">€110/night · family-friendly</div><span class="tc-badge tc-stay">Stay</span></div>
+      <div class="tcard"><div class="tc-title">Stroller-friendly streets?</div><div class="tc-sub">Research needed</div><span class="tc-badge tc-question">Question</span></div>
+      <div class="tcard"><div class="tc-title">Vatican booking</div><div class="tc-sub">2 weeks ahead required</div><span class="tc-badge tc-action">Action</span></div>
+      <div class="tcard"><div class="tc-title">Budget €1,500</div><div class="tc-sub">Total target</div><span class="tc-badge tc-constraint">Constraint</span></div>
+    </div>
+    <div class="kanban-col">
+      <div class="col-label"><span>Shortlisted</span><span class="col-count">3</span></div>
+      <div class="tcard"><div class="tc-title">Ryanair BCN→FCO</div><div class="tc-sub">May 25 06:45 · €47/person</div><span class="tc-badge tc-flight">Flight</span></div>
+      <div class="tcard"><div class="tc-title">Hotel Lancelot</div><div class="tc-sub">Near Termini · €95/night</div><span class="tc-badge tc-stay">Stay</span></div>
+      <div class="tcard"><div class="tc-title">Da Enzo al 29</div><div class="tc-sub">Trastevere · cacio e pepe</div><span class="tc-badge tc-restaurant">Restaurant</span></div>
+    </div>
+    <div class="kanban-col">
+      <div class="col-label"><span>Booked</span><span class="col-count">0</span></div>
+      <div class="col-empty">Nothing booked yet</div>
+    </div>
+    <div class="kanban-col">
+      <div class="col-label"><span>Itinerary</span><span class="col-count">2</span></div>
+      <div class="tcard"><div class="tc-title">Colosseum Tour</div><div class="tc-sub">Day 1 · Morning</div><span class="tc-badge tc-activity">Activity</span></div>
+      <div class="tcard"><div class="tc-title">Borghese Gallery</div><div class="tc-sub">Day 2 · Morning slot</div><span class="tc-badge tc-museum">Museum</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ TIMELINE ═══ -->
+<section class="section" id="timeline">
+  <div class="section-label">Schedule</div>
+  <div class="section-title">Day by day</div>
+  <div class="section-desc">Your trip taking shape. Gaps show where you still need plans.</div>
+
+  <div class="day-block">
+    <div class="day-header">
+      <div class="day-num">1</div>
+      <div class="day-meta"><h4>Sunday, May 25</h4><span>Barcelona → Rome</span></div>
+    </div>
+    <div class="timeline">
+      <div class="tl-slot"><div class="tl-time">06:45 — 08:50</div><div class="tl-title">Ryanair BCN → FCO</div><div class="tl-detail">€47/person · 3 travelers · Terminal 1</div></div>
+      <div class="tl-slot"><div class="tl-time">09:30 — 10:10</div><div class="tl-title">Leonardo Express → Termini</div><div class="tl-detail">€14/person · 32 min direct</div></div>
+      <div class="tl-slot"><div class="tl-time">11:00</div><div class="tl-title">Check-in Hotel Lancelot</div><div class="tl-detail">Near Termini · Drop bags early</div></div>
+      <div class="tl-slot"><div class="tl-time">15:00 — 17:00</div><div class="tl-title">Colosseum &amp; Roman Forum</div><div class="tl-detail">Underground tour · €25/adult · Kids free</div></div>
+    </div>
+  </div>
+
+  <div class="day-block">
+    <div class="day-header">
+      <div class="day-num">2</div>
+      <div class="day-meta"><h4>Monday, May 26</h4><span>Vatican Day</span></div>
+    </div>
+    <div class="timeline">
+      <div class="tl-slot"><div class="tl-time">09:00 — 13:00</div><div class="tl-title">Vatican Museums &amp; Sistine Chapel</div><div class="tl-detail">Pre-booked · €20/adult · 4h visit</div></div>
+      <div class="tl-slot"><div class="tl-time">13:30</div><div class="tl-title">Lunch in Prati</div><div class="tl-detail">Near Vatican exit</div></div>
+    </div>
+    <div class="tl-gap"><div class="tl-gap-inner">No afternoon plans yet · Tap to add</div></div>
+  </div>
+
+  <div class="day-block">
+    <div class="day-header">
+      <div class="day-num">3</div>
+      <div class="day-meta"><h4>Tuesday, May 27</h4><span>Art &amp; Food</span></div>
+    </div>
+    <div class="timeline">
+      <div class="tl-slot"><div class="tl-time">10:00 — 12:00</div><div class="tl-title">Borghese Gallery</div><div class="tl-detail">Timed entry · €15 · Kids free</div></div>
+      <div class="tl-slot"><div class="tl-time">14:00 — 16:00</div><div class="tl-title">Pantheon → Navona → Trevi</div><div class="tl-detail">Classic Rome stroll · Free</div></div>
+      <div class="tl-slot"><div class="tl-time">19:00</div><div class="tl-title">Da Enzo al 29</div><div class="tl-detail">Trastevere · Book ahead</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ BUDGET ═══ -->
+<section class="section" id="budget">
+  <div class="section-label">Budget</div>
+  <div class="section-title">Spending tracker</div>
+  <div class="section-desc">€1,013 remaining for the rest of the trip.</div>
+
+  <div class="budget-card">
+    <div class="budget-top">
+      <h3>Rome Family Trip</h3>
+      <div class="budget-total">€487 <span class="of">/ €1,500</span></div>
+    </div>
+    <div class="budget-bar"><div class="budget-bar-fill"></div></div>
+    <div class="budget-remaining">68% available</div>
+    <div class="budget-rows">
+      <div class="budget-row"><div class="dot" style="background:var(--cat-flight)"></div><div class="bname">Flights</div><div class="btrack"><div class="bfill" style="width:80%;background:var(--cat-flight)"></div></div><div class="bamt">€141</div></div>
+      <div class="budget-row"><div class="dot" style="background:var(--cat-stay)"></div><div class="bname">Hotel</div><div class="btrack"><div class="bfill" style="width:55%;background:var(--cat-stay)"></div></div><div class="bamt">€285</div></div>
+      <div class="budget-row"><div class="dot" style="background:var(--cat-transport)"></div><div class="bname">Transport</div><div class="btrack"><div class="bfill" style="width:35%;background:var(--cat-transport)"></div></div><div class="bamt">€42</div></div>
+      <div class="budget-row"><div class="dot" style="background:var(--cat-food)"></div><div class="bname">Food</div><div class="btrack"><div class="bfill" style="width:8%;background:var(--cat-food)"></div></div><div class="bamt">€19</div></div>
+      <div class="budget-row"><div class="dot" style="background:var(--cat-activity)"></div><div class="bname">Activities</div><div class="btrack"><div class="bfill" style="width:0%;background:var(--cat-activity)"></div></div><div class="bamt">€0</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PACKING ═══ -->
+<section class="section" id="packing">
+  <div class="section-label">Prepare</div>
+  <div class="section-title">Packing list</div>
+  <div class="section-desc">Warm late May in Rome. T-shirts, sunscreen, light layer for evenings.</div>
+
+  <div class="pack-header">
+    <div class="pack-ring">
+      <svg width="44" height="44" viewBox="0 0 44 44">
+        <circle class="pack-ring-bg" cx="22" cy="22" r="18"/>
+        <circle class="pack-ring-fg" cx="22" cy="22" r="18"/>
+      </svg>
+      <div class="pack-ring-label">40%</div>
+    </div>
+    <div class="pack-header-info">
+      <h3>Rome · Late May</h3>
+      <p>22–27°C · 2 of 5 packed</p>
+    </div>
+  </div>
+
+  <div class="pack-group" id="pg1">
+    <div class="pack-group-head" onclick="toggleGroup('pg1')">
+      <div class="pg-left"><span class="pg-icon">👕</span><span class="pg-label">Clothing</span><span class="pg-cnt">2/5</span></div>
+      <span class="pg-chev">▾</span>
+    </div>
+    <div class="pack-items">
+      <div class="pack-item done" onclick="toggleItem(this)"><div class="check on"></div><span class="item-name">T-shirts ×5</span><span class="weather">☀️ Warm</span></div>
+      <div class="pack-item done" onclick="toggleItem(this)"><div class="check on"></div><span class="item-name">Shorts ×3</span><span class="weather">☀️ Warm</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Light sweater for evenings</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Walking shoes</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Sandals</span></div>
+    </div>
+  </div>
+
+  <div class="pack-group closed" id="pg2">
+    <div class="pack-group-head" onclick="toggleGroup('pg2')">
+      <div class="pg-left"><span class="pg-icon">🧴</span><span class="pg-label">Toiletries</span><span class="pg-cnt">0/4</span></div>
+      <span class="pg-chev">▾</span>
+    </div>
+    <div class="pack-items">
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Toothbrush &amp; toothpaste</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Sunscreen SPF 50</span><span class="weather">☀️ Warm</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Deodorant</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Medication</span></div>
+    </div>
+  </div>
+
+  <div class="pack-group closed" id="pg3">
+    <div class="pack-group-head" onclick="toggleGroup('pg3')">
+      <div class="pg-left"><span class="pg-icon">🔌</span><span class="pg-label">Electronics</span><span class="pg-cnt">0/3</span></div>
+      <span class="pg-chev">▾</span>
+    </div>
+    <div class="pack-items">
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Phone charger</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">EU power adapter</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Headphones</span></div>
+    </div>
+  </div>
+
+  <div class="pack-group closed" id="pg4">
+    <div class="pack-group-head" onclick="toggleGroup('pg4')">
+      <div class="pg-left"><span class="pg-icon">📄</span><span class="pg-label">Documents</span><span class="pg-cnt">0/3</span></div>
+      <span class="pg-chev">▾</span>
+    </div>
+    <div class="pack-items">
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Passport / ID</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Booking confirmations</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Travel insurance</span></div>
+    </div>
+  </div>
+
+  <div class="pack-group closed" id="pg5">
+    <div class="pack-group-head" onclick="toggleGroup('pg5')">
+      <div class="pg-left"><span class="pg-icon">👶</span><span class="pg-label">Kid essentials</span><span class="pg-cnt">0/3</span></div>
+      <span class="pg-chev">▾</span>
+    </div>
+    <div class="pack-items">
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Compact stroller</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Snacks &amp; water bottle</span></div>
+      <div class="pack-item" onclick="toggleItem(this)"><div class="check"></div><span class="item-name">Small toys / tablet</span></div>
+    </div>
+  </div>
+</section>
+
+<script>
+function toggleGroup(id){document.getElementById(id).classList.toggle('closed')}
+function toggleItem(el){
+  el.classList.toggle('done');
+  el.querySelector('.check').classList.toggle('on');
+}
+
+const sections=document.querySelectorAll('.section');
+const navLinks=document.querySelectorAll('.nav a');
+const obs=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      navLinks.forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+e.target.id));
+    }
+  });
+},{threshold:0.3,rootMargin:'-50px 0px -40% 0px'});
+sections.forEach(s=>obs.observe(s));
+</script>
+
+</body>
+</html>
