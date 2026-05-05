@@ -423,7 +423,7 @@ def weather_forecast_chart_ui() -> str:
     },
 )
 def packing_checklist_ui() -> str:
-    return (WIDGETS_DIR / "packing_checklist_v2.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "packing_checklist_v3.html").read_text(encoding="utf-8")
 
 
 @server.resource(
@@ -463,7 +463,7 @@ def travel_destination_guide_ui() -> str:
     },
 )
 def travel_activity_cards_ui() -> str:
-    return (WIDGETS_DIR / "travel_activity_cards_v2.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "travel_activity_cards_v3.html").read_text(encoding="utf-8")
 
 
 @server.resource(
@@ -503,7 +503,7 @@ def trip_inbox_ui() -> str:
     },
 )
 def trip_board_ui() -> str:
-    return (WIDGETS_DIR / "trip_board_v2.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "trip_board_v3.html").read_text(encoding="utf-8")
 
 
 @server.resource(
@@ -523,7 +523,7 @@ def trip_board_ui() -> str:
     },
 )
 def trip_itinerary_ui() -> str:
-    return (WIDGETS_DIR / "trip_itinerary_v1.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "trip_itinerary_v3.html").read_text(encoding="utf-8")
 
 
 @server.resource(
@@ -543,7 +543,7 @@ def trip_itinerary_ui() -> str:
     },
 )
 def trip_budget_ui() -> str:
-    return (WIDGETS_DIR / "trip_budget_v1.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "trip_budget_v3.html").read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -10,3 +10,7 @@ htmlcov/
 .DS_Store
 .fastapicloud/
 .gstack/
+
+*storybook.log
+storybook-static
+node_modules/
