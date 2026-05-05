@@ -2,6 +2,8 @@ import { readFile, readFileSync } from "node:fs";
 import { promisify } from "node:util";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import type { StorybookConfig } from '@storybook/html-vite';
+import type { Plugin } from 'vite';
 
 const readFileAsync = promisify(readFile);
 const widgetRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -18,7 +20,7 @@ const widgetHtmlFiles = [
 ];
 const widgetHtmlFileSet = new Set(widgetHtmlFiles);
 
-const widgetHtmlPlugin = {
+const widgetHtmlPlugin: Plugin = {
   name: "travel-widget-html-files",
   configureServer(server) {
     server.middlewares.use(async (req, res, next) => {
@@ -50,26 +52,25 @@ const widgetHtmlPlugin = {
   },
 };
 
-/** @type { import('@storybook/html-vite').StorybookConfig } */
-const config = {
-  "stories": [
-    "../stories/PackingChecklist.stories.js",
-    "../stories/TravelActivityCards.stories.js",
-    "../stories/TravelDestinationGuide.stories.js",
-    "../stories/TripBoard.stories.js",
-    "../stories/TripBudget.stories.js",
-    "../stories/TripInbox.stories.js",
-    "../stories/TripItinerary.stories.js",
-    "../stories/WeatherDashboard.stories.js",
-    "../stories/WeatherForecastChart.stories.js",
-    "../stories/chat/ChatPreview.stories.js"
+const config: StorybookConfig = {
+  stories: [
+    "../stories/PackingChecklist.stories.ts",
+    "../stories/TravelActivityCards.stories.ts",
+    "../stories/TravelDestinationGuide.stories.ts",
+    "../stories/TripBoard.stories.ts",
+    "../stories/TripBudget.stories.ts",
+    "../stories/TripInbox.stories.ts",
+    "../stories/TripItinerary.stories.ts",
+    "../stories/WeatherDashboard.stories.ts",
+    "../stories/WeatherForecastChart.stories.ts",
+    "../stories/chat/ChatPreview.stories.ts"
   ],
-  "addons": [
+  addons: [
     "@chromatic-com/storybook",
     "@storybook/addon-docs",
     "@storybook/addon-a11y"
   ],
-  "framework": "@storybook/html-vite",
+  framework: "@storybook/html-vite",
   async viteFinal(viteConfig) {
     return {
       ...viteConfig,
@@ -77,4 +78,5 @@ const config = {
     };
   },
 };
+
 export default config;

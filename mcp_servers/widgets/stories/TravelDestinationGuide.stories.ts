@@ -1,7 +1,13 @@
-import { destinationGuideMadrid, errorOutput } from './fixtures/travelFixtures.js';
 import { renderWidget } from './renderWidget.js';
+import { destinationGuideMadrid, errorOutput } from './fixtures/travelFixtures.js';
+import type { Meta, StoryObj } from '@storybook/html';
 
-export default {
+interface TravelDestinationGuideArgs {
+  data: any;
+  toolInput: Record<string, any>;
+}
+
+const meta: Meta<TravelDestinationGuideArgs> = {
   title: 'Widgets/Travel Destination Guide',
   render: (args) =>
     renderWidget({
@@ -18,14 +24,17 @@ export default {
   },
 };
 
-export const Default = {
+export default meta;
+type Story = StoryObj<TravelDestinationGuideArgs>;
+
+export const Default: Story = {
   args: { data: destinationGuideMadrid },
 };
 
-export const Empty = {
+export const Empty: Story = {
   args: { data: { city: 'Madrid', country: 'Spain', tips: [], activities: [] } },
 };
 
-export const Error = {
+export const Error: Story = {
   args: { data: errorOutput },
 };

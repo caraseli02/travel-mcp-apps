@@ -1,6 +1,7 @@
-import { createChatPreview } from './ChatPreview.js';
+import { createChatPreview, type ChatPreviewOptions } from './ChatPreview.js';
+import type { Meta, StoryObj } from '@storybook/html';
 
-export default {
+const meta: Meta<ChatPreviewOptions> = {
   title: 'Chat Preview/Conversation',
   render: (args) => createChatPreview(args),
   parameters: {
@@ -26,9 +27,12 @@ export default {
   },
 };
 
-export const WeatherActivitiesPacking = {};
+export default meta;
+type Story = StoryObj<ChatPreviewOptions>;
 
-export const TripPlanningWorkspace = {
+export const WeatherActivitiesPacking: Story = {};
+
+export const TripPlanningWorkspace: Story = {
   args: {
     scenarioId: 'trip-planning',
   },
