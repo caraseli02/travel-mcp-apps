@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trip Board</title>
+<style>
+*,*::before,*::after{box-sizing:border-box}[hidden]{display:none!important}:root{color-scheme:light;--bg:#fff;--surface:#f7f7f7;--surface-2:#fbfbfb;--line:#e8e3dc;--line-strong:#d7d0c6;--text:#171412;--muted:#6f6a64;--soft:#9b948c;--accent:#9a4f2f;--accent-ink:#73351e;--accent-soft:#fff3ec;--danger:#a03a2b;--radius:10px;--shadow:0 1px 2px rgba(23,20,18,.04),0 8px 28px rgba(23,20,18,.06)}body{margin:0;min-width:280px;background:Canvas;color:CanvasText;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;overflow-x:hidden}.shell{max-width:720px;margin:0 auto;padding:14px}.section-head{margin-bottom:10px}.section-kicker{color:var(--soft);font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase}.section-title{margin:3px 0 0;color:var(--text);font-size:15px;font-weight:650}.section-desc{margin:2px 0 0;color:var(--muted);font-size:12px}.widget{border:1px solid var(--line);border-radius:var(--radius);background:var(--bg);box-shadow:var(--shadow);overflow:hidden}.empty,.error{min-height:236px;display:grid;place-items:center;padding:28px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);color:var(--muted);font-size:14px;text-align:center}.error{color:var(--danger)}.board-top{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;padding:13px;border-bottom:1px solid var(--line)}.board-top h2{margin:0;color:var(--text);font-size:13px}.board-top p{margin:2px 0 0;color:var(--muted);font-size:12px}.score{text-align:right;color:var(--text);font-size:24px;font-weight:720;line-height:1;font-variant-numeric:tabular-nums}.progress{grid-column:1/-1;height:5px;border-radius:999px;background:var(--surface);overflow:hidden}.progress span{display:block;height:100%;width:0;border-radius:inherit;background:var(--accent)}.board-lanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}.lane{min-width:0;padding:10px;border-right:1px solid var(--line)}.lane:last-child{border-right:0}.lane-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;color:var(--muted);font-size:11px;font-weight:650}.mini-card{padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--bg);margin-bottom:7px}.mini-card:last-child{margin-bottom:0}.mini-card b{display:block;color:var(--text);font-size:12px;line-height:1.25}.mini-card span{display:block;margin-top:2px;color:var(--muted);font-size:11px;line-height:1.3}.lane-empty{min-height:72px;display:grid;place-items:center;border:1px dashed var(--line-strong);border-radius:8px;color:var(--soft);font-size:11px;text-align:center}.card-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding:10px 13px;border-top:1px solid var(--line);background:var(--surface-2)}.btn{appearance:none;border:1px solid var(--accent);border-radius:8px;background:var(--accent);color:#fff;min-height:34px;padding:0 11px;font-size:12px;font-weight:600}
+@media(max-width:640px){.board-lanes{grid-template-columns:1fr 1fr}.lane:nth-child(2){border-right:0}.lane:nth-child(n+3){border-top:1px solid var(--line)}}@media(max-width:430px){.board-lanes{grid-template-columns:1fr}.lane{border-right:0;border-top:1px solid var(--line)}.lane:first-child{border-top:0}}
+</style>
+</head>
+<body>
+<main class="shell" aria-live="polite">
+  <section class="empty" id="empty">Waiting for trip board data...</section>
+  <section id="content" hidden>
+    <div class="section-head"><div class="section-kicker">Organize</div><h1 class="section-title">Trip Board</h1><p class="section-desc">A compact state summary; the model can handle deeper routing in conversation.</p></div>
+    <article class="widget" aria-label="Trip Board">
+      <div class="board-top"><div><h2 id="tripTitle">Trip</h2><p id="summary">Open questions are visible before they become itinerary commitments.</p></div><div class="score" id="score">0%</div><div class="progress"><span id="progress"></span></div></div>
+      <div class="board-lanes" id="lanes"></div>
+      <div class="card-actions"><button class="btn" type="button">Resolve next gap</button></div>
+    </article>
+  </section>
+</main>
+<script>
+const laneConfig=[["open_decisions","Open"],["shortlisted","Shortlisted"],["booked","Booked"],["itinerary_draft","Itinerary"]];
+const elements={empty:document.getElementById("empty"),content:document.getElementById("content"),tripTitle:document.getElementById("tripTitle"),summary:document.getElementById("summary"),score:document.getElementById("score"),progress:document.getElementById("progress"),lanes:document.getElementById("lanes")};
+function unwrapToolOutput(raw){return raw?.structuredContent??raw?.toolOutput??raw}
+function showEmpty(message){elements.empty.textContent=message;elements.empty.className="empty";elements.empty.hidden=false;elements.content.hidden=true}
+function showError(message){elements.empty.textContent=message||"Trip board is unavailable.";elements.empty.className="error";elements.empty.hidden=false;elements.content.hidden=true}
+function detail(item){return [item.day_label,item.price_note,item.location_note,item.notes||item.raw_content].filter(Boolean).join(" · ")}
+function miniCard(value){const card=document.createElement("div");card.className="mini-card";if(typeof value==="string"){card.innerHTML="<b></b><span>Missing piece</span>";card.querySelector("b").textContent=value}else{card.innerHTML="<b></b><span></span>";card.querySelector("b").textContent=value.title||value.raw_content||"Saved item";card.querySelector("span").textContent=detail(value)}return card}
+function renderLane(key,label,values){const lane=document.createElement("div");lane.className="lane";lane.innerHTML='<div class="lane-head"><span></span><span class="mono"></span></div>';lane.querySelector(".lane-head span").textContent=label;lane.querySelector(".mono").textContent=values.length;if(values.length===0){const empty=document.createElement("div");empty.className="lane-empty";empty.textContent="Nothing here yet";lane.appendChild(empty)}else values.forEach(value=>lane.appendChild(miniCard(value)));return lane}
+function render(raw){const output=unwrapToolOutput(raw);if(!output)return;if(output.error){showError(output.error);return}const trip=output.trip||{};const lanes=output.lanes||{};if(!trip.title&&Object.keys(lanes).length===0){showEmpty("No trip board data was returned.");return}const total=output.counts?.total??Object.values(lanes).flat().length;const committed=(lanes.booked?.length||0)+(lanes.itinerary_draft?.length||0);const percent=total?Math.round(committed/total*100):0;elements.empty.hidden=true;elements.content.hidden=false;elements.tripTitle.textContent=trip.title||"Trip";elements.summary.textContent=total+" saved item"+(total===1?"":"s")+" across decisions and itinerary draft.";elements.score.textContent=percent+"%";elements.progress.style.width=percent+"%";elements.lanes.replaceChildren();laneConfig.forEach(([key,label])=>elements.lanes.appendChild(renderLane(key,label,Array.isArray(lanes[key])?lanes[key]:[])))}
+function currentToolOutput(){return window.openai?.toolOutput}
+render(currentToolOutput());let checksRemaining=50;const checkForLateOutput=window.setInterval(()=>{render(currentToolOutput());checksRemaining-=1;if(checksRemaining<=0||currentToolOutput())window.clearInterval(checkForLateOutput)},100);
+window.addEventListener("message",(event)=>{let message=event.data;if(typeof message==="string"){try{message=JSON.parse(message)}catch{return}}if(message?.jsonrpc==="2.0"&&message.method==="ui/notifications/tool-result")render(message.params)},{passive:true});
+window.addEventListener("openai:set_globals",(event)=>{render(event.detail?.globals?.toolOutput??window.openai?.toolOutput)},{passive:true});
+</script>
+</body>
+</html>
