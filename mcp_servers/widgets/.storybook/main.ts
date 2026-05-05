@@ -17,6 +17,7 @@ const widgetHtmlFiles = [
   "trip_itinerary_v3.html",
   "weather_dashboard_v4.html",
   "weather_forecast_chart_v1.html",
+  "explore_places_v1.html",
 ];
 const widgetHtmlFileSet = new Set(widgetHtmlFiles);
 
@@ -63,6 +64,7 @@ const config: StorybookConfig = {
     "../stories/TripItinerary.stories.ts",
     "../stories/WeatherDashboard.stories.ts",
     "../stories/WeatherForecastChart.stories.ts",
+    "../stories/ExplorePlaces.stories.ts",
     "../stories/chat/ChatPreview.stories.ts"
   ],
   addons: [

@@ -514,3 +514,80 @@ export const tripItineraryAmsterdam: TripItinerary = {
 export const errorOutput: ErrorOutput = {
   error: "The travel service returned an error. Try again with a narrower request.",
 };
+
+export interface ExplorePlace {
+  id: string;
+  title: string;
+  subtitle: string;
+  image_url?: string;
+  url?: string;
+}
+
+export interface ExplorePlaces {
+  section_title?: string;
+  browse_url?: string;
+  places: ExplorePlace[];
+}
+
+export const explorePlacesValencia: ExplorePlaces = {
+  section_title: "Explore",
+  browse_url: "https://example.com/search?q=valencia",
+  places: [
+    {
+      id: "valencia-attractions",
+      title: "Best attractions in Valencia",
+      subtitle: "Most often-seen on the web",
+      image_url: "https://images.unsplash.com/photo-1555992336-03a23c7b20ee?w=600&q=80",
+      url: "https://example.com/attractions/valencia",
+    },
+    {
+      id: "valencia-restaurants",
+      title: "Best restaurants in Valencia",
+      subtitle: "Most often-seen on the web",
+      image_url: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&q=80",
+      url: "https://example.com/restaurants/valencia",
+    },
+    {
+      id: "valencia-hotels",
+      title: "Search hotels with transparent pricing",
+      subtitle: "Unlike most sites, we don't sort based on commissions",
+      image_url: "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&q=80",
+      url: "https://example.com/hotels/valencia",
+    },
+    {
+      id: "valencia-things-to-do",
+      title: "Things to do in Valencia",
+      subtitle: "Curated experiences for every traveller",
+      image_url: "https://images.unsplash.com/photo-1502920514313-52581002a659?w=600&q=80",
+      url: "https://example.com/things-to-do/valencia",
+    },
+    {
+      id: "valencia-day-trips",
+      title: "Day trips from Valencia",
+      subtitle: "Easy escapes under 2 hours away",
+      image_url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&q=80",
+      url: "https://example.com/day-trips/valencia",
+    },
+  ],
+};
+
+export const explorePlacesMinimal: ExplorePlaces = {
+  section_title: "Explore",
+  places: [
+    {
+      id: "minimal-1",
+      title: "Top sights in the city centre",
+      subtitle: "Handpicked by local experts",
+    },
+    {
+      id: "minimal-2",
+      title: "Hidden gems worth visiting",
+      subtitle: "Off the beaten path",
+    },
+    {
+      id: "minimal-3",
+      title: "Family-friendly activities",
+      subtitle: "Great for all ages",
+    },
+  ],
+};
