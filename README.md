@@ -93,7 +93,7 @@ Environment variable changes apply on the next deployment.
 - `app/routers/health.py` - health and MCP readiness endpoints
 - `app/routers/travel.py` - travel API endpoint that orchestrates weather, travel tips, and packing through MCP clients
 - `services/trips.py` - Postgres-backed Trip and TripItem persistence for the unified travel agent
-- `mcp_servers/travel_agent_server.py` - unified MCP endpoint with weather, travel, packing, Trip Inbox, and Trip Board tools
+- `mcp_servers/travel_agent_server.py` - unified MVP MCP endpoint with Trip Inbox, Trip Board, Trip Itinerary, Trip Budget, and trip summary tools
 - `main.py` - compatibility import for `app.main:app`
 - `pyproject.toml` - Project dependencies
 - `.env.example` - local environment variable template

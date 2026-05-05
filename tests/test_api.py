@@ -41,14 +41,10 @@ async def test_mounted_mcp_servers_list_tools() -> None:
                 "list_trip_inbox",
                 "update_trip_item_status",
                 "get_trip_board",
+                "render_trip_board",
                 "get_trip_itinerary",
                 "get_trip_budget",
                 "get_trip_summary",
-                "get_current_weather",
-                "get_forecast",
-                "get_destination_tips",
-                "recommend_activities",
-                "generate_packing_list",
             },
         ),
     ]
@@ -71,6 +67,27 @@ async def test_mounted_mcp_servers_list_tools() -> None:
                         result = await session.list_tools()
 
                 assert {tool.name for tool in result.tools} == expected_tools
+                if path == "/mcp/travel-agent/":
+                    tools = {tool.name: tool for tool in result.tools}
+
+                    assert tools["get_trip_board"].title == "Get trip board data"
+                    assert tools["get_trip_board"].annotations is not None
+                    assert tools["get_trip_board"].annotations.readOnlyHint is True
+                    assert "openai/outputTemplate" not in (tools["get_trip_board"].meta or {})
+
+                    assert tools["render_trip_board"].annotations is not None
+                    assert tools["render_trip_board"].annotations.readOnlyHint is True
+                    assert tools["render_trip_board"].meta == {
+                        "ui": {"resourceUri": "ui://trip/board-v2.html"},
+                        "openai/outputTemplate": "ui://trip/board-v2.html",
+                        "openai/toolInvocation/invoking": "Rendering trip board",
+                        "openai/toolInvocation/invoked": "Rendered trip board",
+                    }
+
+                    assert tools["add_trip_item"].annotations is not None
+                    assert tools["add_trip_item"].annotations.idempotentHint is True
+                    assert tools["add_trip_item"].annotations.destructiveHint is False
+                    assert "openai/outputTemplate" not in (tools["add_trip_item"].meta or {})
 
 
 def test_travel_plan_placeholder() -> None:
