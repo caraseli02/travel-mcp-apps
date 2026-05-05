@@ -97,7 +97,7 @@ WIDGETS_DIR = Path(__file__).resolve().parent / "widgets"
     },
 )
 def packing_checklist_ui() -> str:
-    return (WIDGETS_DIR / "packing_checklist_v2.html").read_text(encoding="utf-8")
+    return (WIDGETS_DIR / "packing_checklist_v3.html").read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":

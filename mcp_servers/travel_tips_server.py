@@ -146,7 +146,7 @@ def travel_destination_guide_ui() -> str:
     },
 )
 def travel_activity_cards_ui() -> str:
-    return (WIDGETS_DIR / "travel_activity_cards_v2.html").read_text(
+    return (WIDGETS_DIR / "travel_activity_cards_v3.html").read_text(
         encoding="utf-8"
     )
 
