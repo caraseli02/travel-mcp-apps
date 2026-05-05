@@ -1,7 +1,13 @@
 import { errorOutput, tripItineraryAmsterdam } from './fixtures/travelFixtures.js';
 import { renderWidget } from './renderWidget.js';
+import type { Meta, StoryObj } from '@storybook/html';
 
-export default {
+interface TripItineraryArgs {
+  data: any;
+  toolInput: Record<string, any>;
+}
+
+const meta: Meta<TripItineraryArgs> = {
   title: 'Widgets/Trip Itinerary',
   render: (args) =>
     renderWidget({
@@ -18,14 +24,17 @@ export default {
   },
 };
 
-export const Default = {
+export default meta;
+type Story = StoryObj<TripItineraryArgs>;
+
+export const Default: Story = {
   args: { data: tripItineraryAmsterdam },
 };
 
-export const Empty = {
+export const Empty: Story = {
   args: { data: { trip: { title: 'Amsterdam spring trip' }, days: [], counts: { scheduled: 0 } } },
 };
 
-export const Error = {
+export const Error: Story = {
   args: { data: errorOutput },
 };

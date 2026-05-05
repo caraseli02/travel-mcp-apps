@@ -1,7 +1,13 @@
-import { errorOutput, forecastMadrid } from './fixtures/travelFixtures.js';
 import { renderWidget } from './renderWidget.js';
+import { errorOutput, forecastMadrid } from './fixtures/travelFixtures.js';
+import type { Meta, StoryObj } from '@storybook/html';
 
-export default {
+interface WeatherForecastChartArgs {
+  data: any;
+  toolInput: Record<string, any>;
+}
+
+const meta: Meta<WeatherForecastChartArgs> = {
   title: 'Widgets/Weather Forecast Chart',
   render: (args) =>
     renderWidget({
@@ -18,14 +24,17 @@ export default {
   },
 };
 
-export const Default = {
+export default meta;
+type Story = StoryObj<WeatherForecastChartArgs>;
+
+export const Default: Story = {
   args: { data: forecastMadrid },
 };
 
-export const Empty = {
+export const Empty: Story = {
   args: { data: { city: 'Madrid', forecasts: [] } },
 };
 
-export const Error = {
+export const Error: Story = {
   args: { data: errorOutput },
 };

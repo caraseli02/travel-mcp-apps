@@ -1,9 +1,57 @@
-const defaultTheme = {
+export interface Theme {
+  colorScheme: "light" | "dark";
+  spacing: "comfortable" | "compact";
+}
+
+export interface RenderWidgetOptions {
+  url: string;
+  mockData?: any;
+  data?: any;
+  toolOutput?: any;
+  toolInput?: Record<string, any>;
+  widgetState?: Record<string, any>;
+  displayMode?: "inline" | "pip" | "fullscreen";
+  theme?: Theme;
+  height?: string;
+  width?: string;
+  onStateChange?: (state: Record<string, any>) => void;
+  _meta?: Record<string, any>;
+}
+
+interface HostState {
+  toolInput: Record<string, any>;
+  toolOutput: any;
+  displayMode: string;
+  theme: Theme;
+  widgetState: Record<string, any>;
+  openInAppUrl?: string;
+  _meta: Record<string, any>;
+}
+
+interface OpenAI {
+  toolInput: Record<string, any>;
+  toolOutput: any;
+  displayMode: string;
+  theme: Theme;
+  widgetState: Record<string, any>;
+  openInAppUrl?: string;
+  _meta: Record<string, any>;
+  setWidgetState: (nextState: Record<string, any> | ((prev: Record<string, any>) => Record<string, any>)) => Promise<Record<string, any>>;
+  setOpenInAppUrl: (value: string) => Promise<string>;
+}
+
+declare global {
+  interface Window {
+    openai?: OpenAI;
+  }
+}
+
+const defaultTheme: Theme = {
   colorScheme: "light",
   spacing: "comfortable",
 };
 
-const dispatchHostUpdate = (targetWindow, hostState) => {
+const dispatchHostUpdate = (targetWindow: Window, hostState: HostState): void => {
   targetWindow.dispatchEvent(
     new CustomEvent("openai:set_globals", {
       detail: { globals: hostState },
@@ -24,11 +72,15 @@ const dispatchHostUpdate = (targetWindow, hostState) => {
   );
 };
 
-const installOpenAiHost = (iframe, hostState, onStateChange) => {
+const installOpenAiHost = (
+  iframe: HTMLIFrameElement,
+  hostState: HostState,
+  onStateChange?: (state: Record<string, any>) => void
+): void => {
   const targetWindow = iframe.contentWindow;
   if (!targetWindow) return;
 
-  const openai = {
+  const openai: OpenAI = {
     ...hostState,
     setWidgetState(nextState) {
       hostState.widgetState =
@@ -62,9 +114,9 @@ export const renderWidget = ({
   width = "min(900px, 100%)",
   onStateChange,
   _meta = {},
-}) => {
+}: RenderWidgetOptions): HTMLDivElement => {
   const resolvedToolOutput = toolOutput ?? data ?? mockData;
-  const hostState = {
+  const hostState: HostState = {
     toolInput,
     toolOutput: resolvedToolOutput,
     displayMode,

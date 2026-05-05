@@ -1,4 +1,192 @@
-export const currentWeatherMadrid = {
+export interface WeatherData {
+  city: string;
+  temperature_celsius: number;
+  temperature_fahrenheit: number;
+  conditions: string;
+  humidity: number;
+  wind_speed: number;
+  precipitation_probability: number;
+  timestamp: string;
+}
+
+export interface ForecastDay {
+  date: string;
+  temp_high_c: number;
+  temp_low_c: number;
+  conditions: string;
+  precipitation_prob: number;
+  humidity: number;
+  wind_speed: number;
+}
+
+export interface ForecastData {
+  city: string;
+  forecasts: ForecastDay[];
+}
+
+export interface WeatherSummary {
+  city: string;
+  weather_category: string;
+  min_temp_c: number;
+  max_temp_c: number;
+  max_precipitation_prob: number;
+  rain_expected: boolean;
+}
+
+export interface WeatherBasedItem {
+  item: string;
+  reason: string;
+}
+
+export interface PackingChecklist {
+  destination: string;
+  duration_days: number;
+  weather_summary: WeatherSummary;
+  categories: {
+    clothing: string[];
+    toiletries: string[];
+    electronics: string[];
+    documents: string[];
+    accessories: string[];
+  };
+  weather_based_items: WeatherBasedItem[];
+  notes: string[];
+}
+
+export interface Coordinates {
+  lat: number;
+  lon: number;
+}
+
+export interface DestinationTip {
+  category: string;
+  icon: string;
+  text: string;
+}
+
+export interface Activity {
+  name: string;
+  description: string;
+  duration_hours: number;
+  cost_usd: number;
+  weather_dependent: boolean;
+}
+
+export interface DestinationGuide {
+  city: string;
+  country: string;
+  overview: string;
+  best_time: string;
+  coordinates: Coordinates;
+  tips: DestinationTip[];
+  activities: Activity[];
+}
+
+export interface ActivityCard {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  duration_hours: number;
+  cost_usd: number;
+  weather_dependent: boolean;
+  best_weather: string[];
+}
+
+export interface ActivityCards {
+  city: string;
+  weather: string;
+  season: string;
+  activities: ActivityCard[];
+}
+
+export interface Trip {
+  id: string;
+  title: string;
+}
+
+export interface TripInboxItem {
+  item_type: string;
+  source_label: string;
+  title: string;
+  raw_content: string;
+  notes?: string;
+}
+
+export interface TripInbox {
+  trip: Trip;
+  items: TripInboxItem[];
+}
+
+export interface TripBoardItem {
+  item_type: string;
+  status: string;
+  title: string;
+  raw_content?: string;
+  notes?: string;
+  day_label?: string;
+}
+
+export interface TripBoard {
+  trip: Trip;
+  counts: { total: number };
+  lanes: {
+    open_decisions: TripBoardItem[];
+    shortlisted: TripBoardItem[];
+    booked: TripBoardItem[];
+    itinerary_draft: TripBoardItem[];
+    missing_pieces: string[];
+  };
+}
+
+export interface CategoryTotal {
+  category: string;
+  amount: number;
+}
+
+export interface BudgetRow {
+  title: string;
+  item_type: string;
+  status: string;
+  amount: number;
+}
+
+export interface TripBudget {
+  trip: Trip;
+  currency: string;
+  spent: number;
+  target: number;
+  remaining: number;
+  percent_used: number;
+  category_totals: CategoryTotal[];
+  rows: BudgetRow[];
+}
+
+export interface ItineraryItem {
+  title: string;
+  schedule_label: string;
+  location_note: string;
+  notes?: string;
+  price_note?: string;
+}
+
+export interface ItineraryDay {
+  label: string;
+  items: ItineraryItem[];
+}
+
+export interface TripItinerary {
+  trip: Trip;
+  counts: { scheduled: number };
+  days: ItineraryDay[];
+  gaps: string[];
+}
+
+export interface ErrorOutput {
+  error: string;
+}
+
+export const currentWeatherMadrid: WeatherData = {
   city: "Madrid",
   temperature_celsius: 24,
   temperature_fahrenheit: 75,
@@ -9,7 +197,7 @@ export const currentWeatherMadrid = {
   timestamp: "2026-05-05T12:00:00Z",
 };
 
-export const forecastMadrid = {
+export const forecastMadrid: ForecastData = {
   city: "Madrid",
   forecasts: [
     {
@@ -60,7 +248,7 @@ export const forecastMadrid = {
   ],
 };
 
-export const packingChecklistAmsterdam = {
+export const packingChecklistAmsterdam: PackingChecklist = {
   destination: "Amsterdam",
   duration_days: 5,
   weather_summary: {
@@ -91,7 +279,7 @@ export const packingChecklistAmsterdam = {
   notes: ["Pack 3 days of core clothing plus 1 extra clothing set(s)."],
 };
 
-export const longPackingChecklistAmsterdam = {
+export const longPackingChecklistAmsterdam: PackingChecklist = {
   ...packingChecklistAmsterdam,
   duration_days: 12,
   categories: {
@@ -119,7 +307,7 @@ export const longPackingChecklistAmsterdam = {
   },
 };
 
-export const destinationGuideMadrid = {
+export const destinationGuideMadrid: DestinationGuide = {
   city: "Madrid",
   country: "Spain",
   overview: "A walkable capital with art museums, parks, late dining, plazas, and tapas culture.",
@@ -167,7 +355,7 @@ export const destinationGuideMadrid = {
   ],
 };
 
-export const activityCardsLondon = {
+export const activityCardsLondon: ActivityCards = {
   city: "London",
   weather: "rain",
   season: "spring",
@@ -195,12 +383,12 @@ export const activityCardsLondon = {
   ],
 };
 
-export const amsterdamTrip = {
+export const amsterdamTrip: Trip = {
   id: "trip-amsterdam-2026",
   title: "Amsterdam spring trip",
 };
 
-export const tripInboxAmsterdam = {
+export const tripInboxAmsterdam: TripInbox = {
   trip: amsterdamTrip,
   items: [
     {
@@ -219,7 +407,7 @@ export const tripInboxAmsterdam = {
   ],
 };
 
-export const tripBoardAmsterdam = {
+export const tripBoardAmsterdam: TripBoard = {
   trip: amsterdamTrip,
   counts: { total: 6 },
   lanes: {
@@ -261,7 +449,7 @@ export const tripBoardAmsterdam = {
   },
 };
 
-export const tripBudgetAmsterdam = {
+export const tripBudgetAmsterdam: TripBudget = {
   trip: amsterdamTrip,
   currency: "EUR",
   spent: 780,
@@ -281,7 +469,7 @@ export const tripBudgetAmsterdam = {
   ],
 };
 
-export const tripItineraryAmsterdam = {
+export const tripItineraryAmsterdam: TripItinerary = {
   trip: amsterdamTrip,
   counts: { scheduled: 4 },
   days: [
@@ -323,6 +511,6 @@ export const tripItineraryAmsterdam = {
   gaps: ["Add dinner plans for Day 2.", "Confirm airport transfer."],
 };
 
-export const errorOutput = {
+export const errorOutput: ErrorOutput = {
   error: "The travel service returned an error. Try again with a narrower request.",
 };

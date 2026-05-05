@@ -4,8 +4,15 @@ import {
   longPackingChecklistAmsterdam,
   packingChecklistAmsterdam,
 } from './fixtures/travelFixtures.js';
+import type { Meta, StoryObj } from '@storybook/html';
 
-const meta = {
+interface PackingChecklistArgs {
+  data: any;
+  toolInput: Record<string, any>;
+  displayMode: 'inline' | 'pip' | 'fullscreen';
+}
+
+const meta: Meta<PackingChecklistArgs> = {
   title: 'Widgets/Packing Checklist',
   render: (args) =>
     renderWidget({
@@ -33,15 +40,16 @@ const meta = {
 };
 
 export default meta;
+type Story = StoryObj<PackingChecklistArgs>;
 
-export const Default = {
+export const Default: Story = {
   args: { data: packingChecklistAmsterdam },
 };
 
-export const LongContent = {
+export const LongContent: Story = {
   args: { data: longPackingChecklistAmsterdam },
 };
 
-export const Error = {
+export const Error: Story = {
   args: { data: errorOutput },
 };

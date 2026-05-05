@@ -1,7 +1,13 @@
-import { activityCardsLondon, errorOutput } from './fixtures/travelFixtures.js';
 import { renderWidget } from './renderWidget.js';
+import { activityCardsLondon, errorOutput } from './fixtures/travelFixtures.js';
+import type { Meta, StoryObj } from '@storybook/html';
 
-export default {
+interface TravelActivityCardsArgs {
+  data: any;
+  toolInput: Record<string, any>;
+}
+
+const meta: Meta<TravelActivityCardsArgs> = {
   title: 'Widgets/Travel Activity Cards',
   render: (args) =>
     renderWidget({
@@ -18,14 +24,17 @@ export default {
   },
 };
 
-export const Default = {
+export default meta;
+type Story = StoryObj<TravelActivityCardsArgs>;
+
+export const Default: Story = {
   args: { data: activityCardsLondon },
 };
 
-export const Empty = {
+export const Empty: Story = {
   args: { data: { city: 'London', weather: 'rain', season: 'spring', activities: [] } },
 };
 
-export const Error = {
+export const Error: Story = {
   args: { data: errorOutput },
 };

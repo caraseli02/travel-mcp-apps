@@ -1,5 +1,6 @@
 import { renderWidget } from '../renderWidget.js';
-import { chatScenarios } from './scenarios.js';
+import { chatScenarios, type ChatTurn } from './scenarios.js';
+import type { Theme } from '../renderWidget.js';
 
 const styles = `
   .chat-preview {
@@ -140,21 +141,27 @@ const styles = `
   }
 `;
 
-const createTextTurn = (turn) => {
+interface HostArgs {
+  displayMode: 'inline' | 'pip' | 'fullscreen';
+  theme: Theme;
+  widgetState: Record<string, any>;
+}
+
+const createTextTurn = (turn: ChatTurn): HTMLElement => {
   const wrapper = document.createElement('article');
   wrapper.className = `chat-turn ${turn.role}`;
 
   const bubble = document.createElement('div');
   bubble.className = 'chat-bubble';
   const text = document.createElement('p');
-  text.textContent = turn.text;
+  text.textContent = turn.text || '';
   bubble.appendChild(text);
   wrapper.appendChild(bubble);
 
   return wrapper;
 };
 
-const createToolTurn = (turn, hostArgs) => {
+const createToolTurn = (turn: ChatTurn, hostArgs: HostArgs): HTMLElement => {
   const wrapper = document.createElement('article');
   wrapper.className = 'chat-turn tool';
 
@@ -176,27 +183,37 @@ const createToolTurn = (turn, hostArgs) => {
 
   const widgetSlot = document.createElement('div');
   widgetSlot.className = 'tool-widget';
-  widgetSlot.appendChild(
-    renderWidget({
-      ...turn.widget,
-      displayMode: hostArgs.displayMode,
-      theme: hostArgs.theme,
-      widgetState: hostArgs.widgetState,
-      width: '100%',
-    })
-  );
+  
+  if (turn.widget) {
+    widgetSlot.appendChild(
+      renderWidget({
+        ...turn.widget,
+        displayMode: hostArgs.displayMode,
+        theme: hostArgs.theme,
+        widgetState: hostArgs.widgetState,
+        width: '100%',
+      })
+    );
+  }
 
   card.append(header, widgetSlot);
   wrapper.appendChild(card);
   return wrapper;
 };
 
+export interface ChatPreviewOptions {
+  scenarioId?: string;
+  displayMode?: 'inline' | 'pip' | 'fullscreen';
+  theme?: Theme;
+  widgetState?: Record<string, any>;
+}
+
 export const createChatPreview = ({
   scenarioId = 'weather-activities-packing',
   displayMode = 'inline',
   theme = { colorScheme: 'light', spacing: 'comfortable' },
   widgetState = {},
-} = {}) => {
+}: ChatPreviewOptions = {}): HTMLElement => {
   const scenario = chatScenarios[scenarioId] ?? chatScenarios['weather-activities-packing'];
 
   const root = document.createElement('main');
@@ -218,7 +235,10 @@ export const createChatPreview = ({
     </div>
     <p class="chat-meta">Simulated Apps SDK host</p>
   `;
-  header.querySelector('.chat-title').textContent = scenario.title;
+  const titleElement = header.querySelector('.chat-title');
+  if (titleElement) {
+    titleElement.textContent = scenario.title;
+  }
 
   const thread = document.createElement('section');
   thread.className = 'chat-thread';

@@ -7,7 +7,28 @@ import {
   tripItineraryAmsterdam,
 } from '../fixtures/travelFixtures.js';
 
-export const weatherActivitiesPackingScenario = {
+export interface WidgetConfig {
+  url: string;
+  height: string;
+  toolInput: Record<string, any>;
+  toolOutput: any;
+}
+
+export interface ChatTurn {
+  role: 'user' | 'assistant' | 'tool';
+  text?: string;
+  label?: string;
+  status?: string;
+  widget?: WidgetConfig;
+}
+
+export interface ChatScenario {
+  id: string;
+  title: string;
+  turns: ChatTurn[];
+}
+
+export const weatherActivitiesPackingScenario: ChatScenario = {
   id: 'weather-activities-packing',
   title: 'Weather, activities, and packing',
   turns: [
@@ -71,7 +92,7 @@ export const weatherActivitiesPackingScenario = {
   ],
 };
 
-export const tripPlanningScenario = {
+export const tripPlanningScenario: ChatScenario = {
   id: 'trip-planning',
   title: 'Trip planning workspace',
   turns: [
@@ -127,7 +148,7 @@ export const tripPlanningScenario = {
   ],
 };
 
-export const chatScenarios = {
+export const chatScenarios: Record<string, ChatScenario> = {
   [weatherActivitiesPackingScenario.id]: weatherActivitiesPackingScenario,
   [tripPlanningScenario.id]: tripPlanningScenario,
 };
