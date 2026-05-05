@@ -8,18 +8,9 @@ if __package__ is None or __package__ == "":
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
-from mcp.types import CallToolResult, TextContent
+from mcp.types import CallToolResult, TextContent, ToolAnnotations
 
 from app.config import get_settings
-from mcp_servers.packing_server import generate_packing_list as packing_generate_packing_list
-from mcp_servers.travel_tips_server import (
-    get_destination_tips as travel_get_destination_tips,
-    recommend_activities as travel_recommend_activities,
-)
-from mcp_servers.weather_server import (
-    get_current_weather as weather_get_current_weather,
-    get_forecast as weather_get_forecast,
-)
 from services.trips import (
     FileTripStore,
     PostgresTripStore,
@@ -92,9 +83,43 @@ def _run_trip_tool(action: Callable[[], CallToolResult]) -> CallToolResult:
         return _tool_error(RuntimeError(f"Trip persistence failed: {exc}"))
 
 
+READ_ONLY = ToolAnnotations(
+    readOnlyHint=True,
+    destructiveHint=False,
+    idempotentHint=True,
+    openWorldHint=False,
+)
+MUTATION = ToolAnnotations(
+    readOnlyHint=False,
+    destructiveHint=False,
+    openWorldHint=False,
+)
+
+
+def _status_meta(invoking: str, invoked: str) -> dict[str, str]:
+    return {
+        "openai/toolInvocation/invoking": invoking,
+        "openai/toolInvocation/invoked": invoked,
+    }
+
+
+def _render_meta(resource_uri: str, invoking: str, invoked: str) -> dict[str, object]:
+    return {
+        "ui": {"resourceUri": resource_uri},
+        "openai/outputTemplate": resource_uri,
+        **_status_meta(invoking, invoked),
+    }
+
+
 @server.tool(
     name="create_trip",
-    description="Create a persistent trip workspace backed by Postgres.",
+    title="Create trip workspace",
+    description=(
+        "Use this when the user wants a saved trip workspace for collecting options, "
+        "decisions, itinerary items, and budget notes."
+    ),
+    annotations=MUTATION,
+    meta=_status_meta("Creating trip workspace", "Created trip workspace"),
 )
 def create_trip(
     title: str,
@@ -115,11 +140,19 @@ def create_trip(
 
 @server.tool(
     name="add_trip_item",
-    description="Save a raw travel fragment into a trip inbox, deduped by normalized content.",
-    meta={
-        "ui": {"resourceUri": "ui://trip/inbox-v2.html"},
-        "openai/outputTemplate": "ui://trip/inbox-v2.html",
-    },
+    title="Save trip item",
+    description=(
+        "Use this when the user wants to save a found hotel, flight, restaurant, "
+        "activity, note, constraint, or booking fragment to a trip workspace inbox. "
+        "Duplicate fragments are detected by normalized content."
+    ),
+    annotations=ToolAnnotations(
+        readOnlyHint=False,
+        destructiveHint=False,
+        idempotentHint=True,
+        openWorldHint=False,
+    ),
+    meta=_status_meta("Saving trip item", "Saved trip item"),
 )
 def add_trip_item(
     trip_id: str,
@@ -169,11 +202,17 @@ def add_trip_item(
 
 @server.tool(
     name="list_trip_inbox",
-    description="List unprocessed inbox items for a trip.",
-    meta={
-        "ui": {"resourceUri": "ui://trip/inbox-v2.html"},
-        "openai/outputTemplate": "ui://trip/inbox-v2.html",
-    },
+    title="Show trip inbox",
+    description=(
+        "Use this when the user wants to review saved trip fragments that still need "
+        "triage or a next decision."
+    ),
+    annotations=READ_ONLY,
+    meta=_render_meta(
+        "ui://trip/inbox-v2.html",
+        "Loading trip inbox",
+        "Loaded trip inbox",
+    ),
 )
 def list_trip_inbox(trip_id: str) -> CallToolResult:
     def action() -> CallToolResult:
@@ -191,7 +230,13 @@ def list_trip_inbox(trip_id: str) -> CallToolResult:
 
 @server.tool(
     name="update_trip_item_status",
-    description="Move a trip item to inbox, shortlisted, booked, rejected, or needs_review.",
+    title="Update trip item status",
+    description=(
+        "Use this when the user decides what to do with a saved trip item: keep it in "
+        "the inbox, shortlist it, mark it booked, reject it, or flag it for review."
+    ),
+    annotations=MUTATION,
+    meta=_status_meta("Updating trip item", "Updated trip item"),
 )
 def update_trip_item_status(
     item_id: str,
@@ -212,11 +257,13 @@ def update_trip_item_status(
 
 @server.tool(
     name="get_trip_board",
-    description="Show the trip board grouped into decisions, shortlist, booked items, itinerary draft, and missing pieces.",
-    meta={
-        "ui": {"resourceUri": "ui://trip/board-v2.html"},
-        "openai/outputTemplate": "ui://trip/board-v2.html",
-    },
+    title="Get trip board data",
+    description=(
+        "Use this to fetch the current trip decision state grouped into inbox, "
+        "shortlist, booked items, itinerary draft, and missing planning pieces."
+    ),
+    annotations=READ_ONLY,
+    meta=_status_meta("Fetching trip board", "Fetched trip board"),
 )
 def get_trip_board(trip_id: str) -> CallToolResult:
     def action() -> CallToolResult:
@@ -233,12 +280,47 @@ def get_trip_board(trip_id: str) -> CallToolResult:
 
 
 @server.tool(
+    name="render_trip_board",
+    title="Render trip board",
+    description=(
+        "Use this after fetching or changing trip state when the user asks to see a "
+        "visual trip board of decisions, shortlist, booked items, itinerary draft, "
+        "and missing pieces."
+    ),
+    annotations=READ_ONLY,
+    meta=_render_meta(
+        "ui://trip/board-v2.html",
+        "Rendering trip board",
+        "Rendered trip board",
+    ),
+)
+def render_trip_board(trip_id: str) -> CallToolResult:
+    def action() -> CallToolResult:
+        store = get_trip_store()
+        trip = store.get_trip(trip_id)
+        board = build_board(trip, store.list_items(trip_id))
+        return CallToolResult(
+            structuredContent=board,
+            content=_text(f"Rendered trip board for {trip.title}."),
+            _meta={},
+        )
+
+    return _run_trip_tool(action)
+
+
+@server.tool(
     name="get_trip_itinerary",
-    description="Show the trip schedule as a day-by-day itinerary timeline.",
-    meta={
-        "ui": {"resourceUri": "ui://trip/itinerary-v1.html"},
-        "openai/outputTemplate": "ui://trip/itinerary-v1.html",
-    },
+    title="Show trip itinerary",
+    description=(
+        "Use this when the user wants to see scheduled or day-labeled trip items as a "
+        "day-by-day itinerary."
+    ),
+    annotations=READ_ONLY,
+    meta=_render_meta(
+        "ui://trip/itinerary-v1.html",
+        "Loading trip itinerary",
+        "Loaded trip itinerary",
+    ),
 )
 def get_trip_itinerary(trip_id: str) -> CallToolResult:
     def action() -> CallToolResult:
@@ -256,11 +338,17 @@ def get_trip_itinerary(trip_id: str) -> CallToolResult:
 
 @server.tool(
     name="get_trip_budget",
-    description="Show tracked trip spending against any saved budget target.",
-    meta={
-        "ui": {"resourceUri": "ui://trip/budget-v1.html"},
-        "openai/outputTemplate": "ui://trip/budget-v1.html",
-    },
+    title="Show trip budget",
+    description=(
+        "Use this when the user wants tracked trip spending, extracted prices, party "
+        "or night multipliers, and any saved budget target."
+    ),
+    annotations=READ_ONLY,
+    meta=_render_meta(
+        "ui://trip/budget-v1.html",
+        "Loading trip budget",
+        "Loaded trip budget",
+    ),
 )
 def get_trip_budget(trip_id: str) -> CallToolResult:
     def action() -> CallToolResult:
@@ -278,7 +366,13 @@ def get_trip_budget(trip_id: str) -> CallToolResult:
 
 @server.tool(
     name="get_trip_summary",
-    description="Summarize saved trip state and missing planning pieces.",
+    title="Summarize trip state",
+    description=(
+        "Use this when the user wants a concise natural-language summary of saved "
+        "trip state, item counts, and missing planning pieces."
+    ),
+    annotations=READ_ONLY,
+    meta=_status_meta("Summarizing trip", "Summarized trip"),
 )
 def get_trip_summary(trip_id: str) -> CallToolResult:
     def action() -> CallToolResult:
@@ -302,168 +396,6 @@ def get_trip_summary(trip_id: str) -> CallToolResult:
         )
 
     return _run_trip_tool(action)
-
-
-@server.tool(
-    name="get_current_weather",
-    description="Get current weather from the unified travel-agent endpoint.",
-    meta={
-        "ui": {"resourceUri": "ui://weather/dashboard-v5.html"},
-        "openai/outputTemplate": "ui://weather/dashboard-v5.html",
-    },
-)
-async def get_current_weather(city: str) -> CallToolResult:
-    return await weather_get_current_weather(city)
-
-
-@server.tool(
-    name="get_forecast",
-    description="Get a weather forecast from the unified travel-agent endpoint.",
-    meta={
-        "ui": {"resourceUri": "ui://weather/forecast-chart-v2.html"},
-        "openai/outputTemplate": "ui://weather/forecast-chart-v2.html",
-    },
-)
-async def get_forecast(city: str, days: int = 5) -> CallToolResult:
-    return await weather_get_forecast(city, days)
-
-
-@server.tool(
-    name="get_destination_tips",
-    description="Get destination tips from the unified travel-agent endpoint.",
-    meta={
-        "ui": {"resourceUri": "ui://travel/destination-guide-v2.html"},
-        "openai/outputTemplate": "ui://travel/destination-guide-v2.html",
-    },
-)
-def get_destination_tips(city: str) -> CallToolResult:
-    return travel_get_destination_tips(city)
-
-
-@server.tool(
-    name="recommend_activities",
-    description="Recommend activities from the unified travel-agent endpoint.",
-    meta={
-        "ui": {"resourceUri": "ui://travel/activity-cards-v2.html"},
-        "openai/outputTemplate": "ui://travel/activity-cards-v2.html",
-    },
-)
-def recommend_activities(city: str, weather: str, season: str) -> CallToolResult:
-    return travel_recommend_activities(city, weather, season)
-
-
-@server.tool(
-    name="generate_packing_list",
-    description="Generate a packing list from the unified travel-agent endpoint.",
-    meta={
-        "ui": {"resourceUri": "ui://packing/checklist-v2.html"},
-        "openai/outputTemplate": "ui://packing/checklist-v2.html",
-    },
-)
-def generate_packing_list(
-    destination: str, duration_days: int, weather_forecast: str
-) -> CallToolResult:
-    return packing_generate_packing_list(destination, duration_days, weather_forecast)
-
-
-@server.resource(
-    "ui://weather/dashboard-v5.html",
-    name="weather_dashboard_ui",
-    description="Interactive weather dashboard UI",
-    mime_type="text/html;profile=mcp-app",
-    meta={
-        "ui": {
-            "prefersBorder": True,
-            "csp": {
-                "connectDomains": [],
-                "resourceDomains": [],
-            },
-        },
-        "openai/widgetDescription": "Shows the current weather for the requested city.",
-    },
-)
-def weather_dashboard_ui() -> str:
-    return (WIDGETS_DIR / "weather_dashboard_v5.html").read_text(encoding="utf-8")
-
-
-@server.resource(
-    "ui://weather/forecast-chart-v2.html",
-    name="weather_forecast_chart_ui",
-    description="5-day weather forecast chart UI",
-    mime_type="text/html;profile=mcp-app",
-    meta={
-        "ui": {
-            "prefersBorder": True,
-            "csp": {
-                "connectDomains": [],
-                "resourceDomains": [],
-            },
-        },
-        "openai/widgetDescription": "Shows a compact multi-day weather forecast for the requested city.",
-    },
-)
-def weather_forecast_chart_ui() -> str:
-    return (WIDGETS_DIR / "weather_forecast_chart_v2.html").read_text(encoding="utf-8")
-
-
-@server.resource(
-    "ui://packing/checklist-v2.html",
-    name="packing_checklist_ui",
-    description="Packing checklist UI",
-    mime_type="text/html;profile=mcp-app",
-    meta={
-        "ui": {
-            "prefersBorder": True,
-            "csp": {
-                "connectDomains": [],
-                "resourceDomains": [],
-            },
-        },
-        "openai/widgetDescription": "Shows a categorized packing checklist for the trip.",
-    },
-)
-def packing_checklist_ui() -> str:
-    return (WIDGETS_DIR / "packing_checklist_v3.html").read_text(encoding="utf-8")
-
-
-@server.resource(
-    "ui://travel/destination-guide-v2.html",
-    name="travel_destination_guide_ui",
-    description="Destination guide UI",
-    mime_type="text/html;profile=mcp-app",
-    meta={
-        "ui": {
-            "prefersBorder": True,
-            "csp": {
-                "connectDomains": [],
-                "resourceDomains": [],
-            },
-        },
-        "openai/widgetDescription": "Shows a compact destination guide with travel tips and first activity picks.",
-    },
-)
-def travel_destination_guide_ui() -> str:
-    return (WIDGETS_DIR / "travel_destination_guide_v2.html").read_text(encoding="utf-8")
-
-
-@server.resource(
-    "ui://travel/activity-cards-v2.html",
-    name="travel_activity_cards_ui",
-    description="Activity recommendation cards UI",
-    mime_type="text/html;profile=mcp-app",
-    meta={
-        "ui": {
-            "prefersBorder": True,
-            "csp": {
-                "connectDomains": [],
-                "resourceDomains": [],
-            },
-        },
-        "openai/widgetDescription": "Shows activity recommendations matched to weather and season.",
-    },
-)
-def travel_activity_cards_ui() -> str:
-    return (WIDGETS_DIR / "travel_activity_cards_v3.html").read_text(encoding="utf-8")
 
 
 @server.resource(

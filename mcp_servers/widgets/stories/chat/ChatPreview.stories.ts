@@ -10,7 +10,7 @@ const meta: Meta<ChatPreviewOptions> = {
   argTypes: {
     scenarioId: {
       control: { type: 'select' },
-      options: ['weather-activities-packing', 'trip-planning'],
+      options: ['trip-planning'],
     },
     displayMode: {
       control: { type: 'select' },
@@ -20,7 +20,7 @@ const meta: Meta<ChatPreviewOptions> = {
     widgetState: { control: 'object' },
   },
   args: {
-    scenarioId: 'weather-activities-packing',
+    scenarioId: 'trip-planning',
     displayMode: 'inline',
     theme: { colorScheme: 'light', spacing: 'comfortable' },
     widgetState: {},
@@ -29,8 +29,6 @@ const meta: Meta<ChatPreviewOptions> = {
 
 export default meta;
 type Story = StoryObj<ChatPreviewOptions>;
-
-export const WeatherActivitiesPacking: Story = {};
 
 export const TripPlanningWorkspace: Story = {
   args: {

@@ -209,12 +209,12 @@ export interface ChatPreviewOptions {
 }
 
 export const createChatPreview = ({
-  scenarioId = 'weather-activities-packing',
+  scenarioId = 'trip-planning',
   displayMode = 'inline',
   theme = { colorScheme: 'light', spacing: 'comfortable' },
   widgetState = {},
 }: ChatPreviewOptions = {}): HTMLElement => {
-  const scenario = chatScenarios[scenarioId] ?? chatScenarios['weather-activities-packing'];
+  const scenario = chatScenarios[scenarioId] ?? chatScenarios['trip-planning'];
 
   const root = document.createElement('main');
   root.className = 'chat-preview';

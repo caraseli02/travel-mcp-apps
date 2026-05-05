@@ -65,6 +65,20 @@ def test_board_tool_groups_items_by_status(trip_store: InMemoryTripStore) -> Non
     assert result.structuredContent["lanes"]["itinerary_draft"][0]["id"] == activity["id"]
 
 
+def test_render_trip_board_matches_data_tool_payload(trip_store: InMemoryTripStore) -> None:
+    trip = trip_store.create_trip("London")
+    hotel = travel_agent_server.add_trip_item(trip.id, "Hotel near Soho").structuredContent["item"]
+    travel_agent_server.update_trip_item_status(hotel["id"], "booked")
+
+    data_result = travel_agent_server.get_trip_board(trip.id)
+    render_result = travel_agent_server.render_trip_board(trip.id)
+
+    assert data_result.isError is not True
+    assert render_result.isError is not True
+    assert render_result.structuredContent == data_result.structuredContent
+    assert render_result.content[0].text == "Rendered trip board for London."
+
+
 def test_itinerary_tool_groups_items_by_day(trip_store: InMemoryTripStore) -> None:
     trip = trip_store.create_trip("Rome")
     activity = travel_agent_server.add_trip_item(
@@ -220,11 +234,6 @@ def test_unified_server_registers_every_tool_output_template() -> None:
         "ui://trip/board-v2.html": travel_agent_server.trip_board_ui,
         "ui://trip/itinerary-v1.html": travel_agent_server.trip_itinerary_ui,
         "ui://trip/budget-v1.html": travel_agent_server.trip_budget_ui,
-        "ui://weather/dashboard-v5.html": travel_agent_server.weather_dashboard_ui,
-        "ui://weather/forecast-chart-v2.html": travel_agent_server.weather_forecast_chart_ui,
-        "ui://packing/checklist-v2.html": travel_agent_server.packing_checklist_ui,
-        "ui://travel/destination-guide-v2.html": travel_agent_server.travel_destination_guide_ui,
-        "ui://travel/activity-cards-v2.html": travel_agent_server.travel_activity_cards_ui,
     }
 
     for uri, read_resource in templates.items():

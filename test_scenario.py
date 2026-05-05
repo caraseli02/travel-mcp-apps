@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""End-to-end test: Rome family trip with 12 fragments via MCP tools."""
+"""End-to-end test: Rome family trip via the MVP travel-agent MCP tools."""
 
 import json, re, sys, requests
 
@@ -101,14 +101,17 @@ def main():
         r = mcp("tools/call", {"name": "add_trip_item", "arguments": {
             "trip_id": trip_id, "raw_content": ftext, "item_type": itype}})
         t = txt(r)
-        # extract item_id from structuredContent
+        # Extract item IDs from the current structuredContent shape.
         sc = r.get("structuredContent") if isinstance(r, dict) else None
-        if sc:
-            inbox = sc.get("inbox", [])
-            for item in inbox:
+        if isinstance(sc, dict):
+            item = sc.get("item", {})
+            iid = item.get("item_id") or item.get("id") if isinstance(item, dict) else None
+            if iid and iid not in item_ids:
+                item_ids.append(iid)
+            for item in sc.get("items", []):
                 iid = item.get("item_id") or item.get("id")
                 if iid and iid not in item_ids:
-                    item_ids.append(iid); break
+                    item_ids.append(iid)
         if t:
             print(f"   [{i+1:2d}] ✅ {itype:12s} → {ftext[:55]}"); P += 1
         else:
@@ -146,7 +149,7 @@ def main():
     else:
         for idx, iid in enumerate(test_ids):
             r = mcp("tools/call", {"name": "update_trip_item_status", "arguments": {
-                "trip_id": trip_id, "item_id": iid, "status": "shortlisted"}})
+                "item_id": iid, "status": "shortlisted"}})
             t = txt(r)
             label = labels[idx] if idx < len(labels) else f"item-{idx}"
             if t:
@@ -169,8 +172,40 @@ def main():
     else:
         print(f"   ❌ {r}"); F += 1
 
-    # 6: Get summary
-    print("\n📝 6. Get trip summary")
+    # 6: Render board
+    print("\n🖼️  6. Render trip board")
+    r = mcp("tools/call", {"name": "render_trip_board", "arguments": {"trip_id": trip_id}})
+    t = txt(r)
+    if t:
+        print(f"   Text: {t[:300]}")
+        sc = r.get("structuredContent") if isinstance(r, dict) else None
+        if sc:
+            print(f"   ✅ Render payload: {json.dumps(sc)[:400]}")
+        else:
+            print(f"   ✅ Board render returned")
+        P += 1
+    else:
+        print(f"   ❌ {r}"); F += 1
+
+    # 7: Get itinerary and budget
+    print("\n🗓️  7. Get itinerary")
+    r = mcp("tools/call", {"name": "get_trip_itinerary", "arguments": {"trip_id": trip_id}})
+    t = txt(r)
+    if t:
+        print(f"   {t[:300]}"); P += 1
+    else:
+        print(f"   ❌ {r}"); F += 1
+
+    print("\n💶 8. Get budget")
+    r = mcp("tools/call", {"name": "get_trip_budget", "arguments": {"trip_id": trip_id}})
+    t = txt(r)
+    if t:
+        print(f"   {t[:300]}"); P += 1
+    else:
+        print(f"   ❌ {r}"); F += 1
+
+    # 9: Get summary
+    print("\n📝 9. Get trip summary")
     r = mcp("tools/call", {"name": "get_trip_summary", "arguments": {"trip_id": trip_id}})
     t = txt(r)
     if t:
@@ -178,9 +213,14 @@ def main():
     else:
         print(f"   ❌ {r}"); F += 1
 
-    # 7: Widget resources
-    print("\n🎨 7. UI widget resources")
-    for uri in ["ui://trip/inbox-v1.html", "ui://trip/board-v1.html"]:
+    # 10: Widget resources
+    print("\n🎨 10. UI widget resources")
+    for uri in [
+        "ui://trip/inbox-v2.html",
+        "ui://trip/board-v2.html",
+        "ui://trip/itinerary-v1.html",
+        "ui://trip/budget-v1.html",
+    ]:
         r = mcp("resources/read", {"uri": uri})
         if ok(r):
             contents = r.get("contents", [])
@@ -194,22 +234,24 @@ def main():
         else:
             print(f"   ❌ {uri}: {r}"); F += 1
 
-    # 8: Tool listing
-    print("\n🔧 8. All 11 tools present")
+    # 11: Tool listing
+    print("\n🔧 11. MVP travel-agent tools present")
     r = mcp("tools/list")
     if ok(r):
         names = sorted(t["name"] for t in r.get("tools", []))
         expected = sorted([
             "create_trip", "add_trip_item", "list_trip_inbox",
-            "update_trip_item_status", "get_trip_board", "get_trip_summary",
-            "get_current_weather", "get_forecast", "get_destination_tips",
-            "recommend_activities", "generate_packing_list"])
+            "update_trip_item_status", "get_trip_board", "render_trip_board",
+            "get_trip_itinerary", "get_trip_budget", "get_trip_summary"])
         missing = [t for t in expected if t not in names]
+        unexpected = [t for t in names if t not in expected]
         print(f"   Tools ({len(names)}): {', '.join(names)}")
         if missing:
             print(f"   ⚠️  Missing: {missing}"); F += 1
+        elif unexpected:
+            print(f"   ⚠️  Unexpected non-MVP tools: {unexpected}"); F += 1
         else:
-            print(f"   ✅ All 11 present"); P += 1
+            print(f"   ✅ All 9 MVP tools present"); P += 1
     else:
         print(f"   ❌ {r}"); F += 1
 
