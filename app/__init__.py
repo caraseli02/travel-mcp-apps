@@ -1,1 +1,0 @@
-"""Travel MCP app package."""

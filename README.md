@@ -1,111 +1,72 @@
 # travel-mcp-app
 
-Learning-by-doing project for a ChatGPT-native Travel Tip Planner built with FastAPI, MCP, OpenWeather, trip persistence, and MCP Apps UI resources.
+TypeScript MCP app for persisted travel planning workspaces in ChatGPT Apps.
 
-The intended deployment target is FastAPI Cloud:
-
-- Docs: https://fastapicloud.com/docs/getting-started/
-- App dashboard: https://dashboard.fastapicloud.com
+The app uses `mcp-use` for the MCP server, React widget resources, local Inspector preview, and Node-friendly deployment. The production runtime is now TypeScript only.
 
 ## Quick Start
 
-### Start the development server
-
 ```bash
-source .venv/bin/activate
-pip install -e ".[dev]"
-fastapi dev
+npm install
+npm run dev
 ```
 
-Visit http://localhost:8000
+`npm run dev` starts the MCP app and Inspector on `http://localhost:3000`.
 
-Local MCP endpoints mounted in the FastAPI app:
+## Configuration
 
-- Weather: http://localhost:8000/mcp/weather/
-- Travel tips: http://localhost:8000/mcp/travel/
-- Packing: http://localhost:8000/mcp/packing/
-- Unified travel agent: http://localhost:8000/mcp/travel-agent/
-
-Trip Inbox and Trip Board tools require persistent storage. The production path is
-Postgres through `DATABASE_URL`.
-The recommended setup is [Neon](https://neon.tech) via the FastAPI Cloud integration
-(Storage → Connect Neon), which sets `DATABASE_URL` automatically.
-If you customize the integration variable name, `NEON_DATABASE_URL` also works.
-The MCP tool returns a setup error if no database is configured.
-
-For temporary GPT Apps testing without an external database, set
-`TRIP_STORE_BACKEND=file`. This stores trips in `TRIP_STORE_FILE_PATH`, which
-defaults to `/tmp/travel-mcp-trips.json`. Use this only for smoke testing:
-FastAPI Cloud can lose `/tmp` data on restart or redeploy.
-
-### Deploy to FastAPI Cloud
-
-FastAPI Cloud can deploy this project if:
-
-- `fastapi[standard]` is installed.
-- `pyproject.toml` includes the Python version.
-- `fastapi dev` works locally without extra arguments, or `[tool.fastapi]` defines the entrypoint.
-- Runtime secrets such as `OPENWEATHER_API_KEY` are configured in FastAPI Cloud.
+Trip state can be stored in Postgres or a local JSON file.
 
 ```bash
-fastapi login
-fastapi deploy
+# Production or hosted validation
+DATABASE_URL="postgresql://..."
+TRIP_STORE_BACKEND=postgres
+
+# Local smoke testing
+TRIP_STORE_BACKEND=file
+TRIP_STORE_FILE_PATH=/tmp/travel-mcp-trips.json
 ```
 
-Set the OpenWeather key as a FastAPI Cloud secret:
+`DATABASE_URL`, `NEON_DATABASE_URL`, and `SUPABASE_DATABASE_URL` are checked in that order for Postgres.
+
+## Commands
 
 ```bash
-fastapi cloud env set --secret OPENWEATHER_API_KEY "your-api-key"
+npm run dev        # Start mcp-use dev server and Inspector
+npm run build      # Build server and React widget resources
+npm run typecheck  # TypeScript validation
+npm test           # Vitest parity and store tests
+npm run check      # Typecheck, tests, and build
 ```
 
-Set up Neon Postgres for Trip Inbox and Trip Board:
+## MCP Tools
 
-1. Go to your app's **Storage** tab in the FastAPI Cloud dashboard
-2. Click **Connect** on the Neon integration
-3. Select your Neon project and branch
-4. `DATABASE_URL` is set automatically
-
-Or set it manually:
-
-```bash
-fastapi cloud env set --secret DATABASE_URL "postgresql://..."
-```
-
-If you customized the FastAPI Cloud Neon integration variable name, set:
-
-```bash
-fastapi cloud env set --secret NEON_DATABASE_URL "postgresql://..."
-```
-
-Or use the temporary file store while testing GPT Apps:
-
-```bash
-fastapi cloud env set TRIP_STORE_BACKEND "file"
-fastapi cloud env set TRIP_STORE_FILE_PATH "/tmp/travel-mcp-trips.json"
-```
-
-Environment variable changes apply on the next deployment.
+- `create_trip`
+- `add_trip_item`
+- `list_trip_inbox`
+- `update_trip_item_status`
+- `get_trip_board`
+- `render_trip_board`
+- `get_trip_itinerary`
+- `get_trip_budget`
+- `get_trip_summary`
 
 ## Project Structure
 
-- `app/main.py` - FastAPI application factory and app instance
-- `app/config.py` - environment-based settings
-- `app/routers/health.py` - health and MCP readiness endpoints
-- `app/routers/travel.py` - travel API endpoint that orchestrates weather, travel tips, and packing through MCP clients
-- `services/trips.py` - Postgres-backed Trip and TripItem persistence for the unified travel agent
-- `mcp_servers/travel_agent_server.py` - unified MVP MCP endpoint with Trip Inbox, Trip Board, Trip Itinerary, Trip Budget, and trip summary tools
-- `main.py` - compatibility import for `app.main:app`
-- `pyproject.toml` - Project dependencies
-- `.env.example` - local environment variable template
-- `.fastapicloudignore` - deployment upload exclusions
-- `tests/` - API test scaffold
-- `docs/chatgpt_apps_readiness_review.md` - ChatGPT Apps publication-readiness review
-- `docs/testing_chatgpt_apps.md` - MCP protocol and ChatGPT Apps widget bridge testing guide
-- `docs/office_hours_trip_inbox_board_2026-04-30.md` - repo-tracked copy of the gstack `/office-hours` product direction
-- `todos/001-ready-p1-mcp-learning-roadmap.md` - detailed MCP learning todo list with hints and references
-- `.kiro/specs/mcp-travel-planner-ui/` - Requirements and design notes for the MCP learning project
+- `index.ts` - `mcp-use` server entry point
+- `src/domain/` - trip models, pure builders, schemas
+- `src/stores/` - in-memory, file, and Postgres trip stores
+- `src/tools/` - MCP tool surface
+- `resources/` - React widgets rendered by `mcp-use`
+- `tests/` - TypeScript parity and persistence coverage
+- `docs/migration/python-to-typescript.md` - migration notes and retired Python scope
 
-## Learn More
+## Validation
 
-- [FastAPI Documentation](https://fastapi.tiangolo.com)
-- [FastAPI Cloud Docs](https://fastapicloud.com/docs/getting-started/)
+Run:
+
+```bash
+npm run check
+```
+
+Before claiming ChatGPT submission readiness, also validate the hosted HTTPS endpoint in ChatGPT Developer Mode with database-backed trip state.
