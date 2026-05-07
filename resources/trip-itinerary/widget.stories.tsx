@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { TripItineraryLayout } from "./widget";
 import type { TripItineraryProps } from "@/domain/widgetTypes";
 
+import * as fixtures from "../stories/fixtures/travelFixtures";
+
 const mockTrip = {
   id: "trip-1",
   title: "Tokyo & Kyoto Adventure",
@@ -11,6 +13,36 @@ const mockTrip = {
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
+
+// Helper to map fixture Trip to domain Trip
+const mapTrip = (t: any) => ({
+  id: t.id,
+  title: t.title,
+  destination: "Amsterdam",
+  start_date: "2026-05-01",
+  end_date: "2026-05-05",
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
+
+// Helper to map fixture Item to domain Item
+const mapItem = (item: any, tripId: string) => ({
+  id: Math.random().toString(36).substr(2, 9),
+  trip_id: tripId,
+  raw_content: item.raw_content || item.title,
+  normalized_raw_content: item.raw_content || item.title,
+  item_type: item.item_type,
+  status: item.status || "inbox",
+  title: item.title,
+  source_label: item.source_label || null,
+  day_label: item.day_label || null,
+  date_note: null,
+  price_note: item.price_note || null,
+  location_note: item.location_note || null,
+  notes: item.notes || null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
 
 const baseItem = (overrides = {}) => ({
   id: `item-${Math.random().toString(36).slice(2)}`,
@@ -61,6 +93,7 @@ const defaultProps: TripItineraryProps = {
 const meta: Meta<typeof TripItineraryLayout> = {
   title: "Widgets/TripItinerary",
   component: TripItineraryLayout,
+  tags: ["autodocs"],
   parameters: { layout: "padded" },
 };
 
@@ -69,6 +102,24 @@ type Story = StoryObj<typeof TripItineraryLayout>;
 
 export const Default: Story = {
   args: { props: defaultProps },
+};
+
+export const Amsterdam: Story = {
+  args: {
+    props: {
+      trip: mapTrip(fixtures.amsterdamTrip),
+      counts: { scheduled: 4, unscheduled: 0 },
+      days: fixtures.tripItineraryAmsterdam.days.map((day) => ({
+        label: day.label,
+        items: day.items.map((i) => ({
+          ...mapItem(i, fixtures.amsterdamTrip.id),
+          schedule_label: i.schedule_label,
+        })),
+      })),
+      unscheduled: [],
+      gaps: fixtures.tripItineraryAmsterdam.gaps,
+    },
+  },
 };
 
 export const Empty: Story = {
@@ -80,5 +131,14 @@ export const Empty: Story = {
       gaps: ["No scheduled items yet. Add dates to your saved items."],
       counts: { scheduled: 0, unscheduled: 0 },
     },
+  },
+};
+
+export const ErrorState: Story = {
+  args: {
+    props: {
+      ...defaultProps,
+      error: fixtures.errorOutput.error,
+    } as any,
   },
 };

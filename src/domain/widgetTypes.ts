@@ -100,3 +100,80 @@ export type TripInboxProps = z.infer<typeof tripInboxPropsSchema>;
 export type TripBoardProps = z.infer<typeof tripBoardPropsSchema>;
 export type TripItineraryProps = z.infer<typeof tripItineraryPropsSchema>;
 export type TripBudgetProps = z.infer<typeof tripBudgetPropsSchema>;
+
+export const explorePlaceSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  subtitle: z.string(),
+  image_url: z.string().optional(),
+  url: z.string().optional(),
+});
+
+export const explorePlacesPropsSchema = z.object({
+  section_title: z.string().optional(),
+  browse_url: z.string().optional(),
+  places: z.array(explorePlaceSchema),
+});
+
+export const packingChecklistPropsSchema = z.object({
+  destination: z.string(),
+  duration_days: z.number(),
+  weather_summary: z.object({
+    city: z.string(),
+    weather_category: z.string(),
+    min_temp_c: z.number(),
+    max_temp_c: z.number(),
+    max_precipitation_prob: z.number(),
+    rain_expected: z.boolean(),
+  }),
+  categories: z.object({
+    clothing: z.array(z.string()),
+    toiletries: z.array(z.string()),
+    electronics: z.array(z.string()),
+    documents: z.array(z.string()),
+    accessories: z.array(z.string()),
+  }),
+  weather_based_items: z.array(z.object({ item: z.string(), reason: z.string() })),
+  notes: z.array(z.string()),
+});
+
+export const travelActivityCardSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: z.string(),
+  description: z.string(),
+  duration_hours: z.number(),
+  cost_usd: z.number(),
+  weather_dependent: z.boolean(),
+  best_weather: z.array(z.string()),
+});
+
+export const travelActivityCardsPropsSchema = z.object({
+  city: z.string(),
+  weather: z.string(),
+  season: z.string(),
+  activities: z.array(travelActivityCardSchema),
+});
+
+export const travelDestinationGuidePropsSchema = z.object({
+  city: z.string(),
+  country: z.string(),
+  overview: z.string(),
+  best_time: z.string(),
+  coordinates: z.object({ lat: z.number(), lon: z.number() }),
+  tips: z.array(z.object({ category: z.string(), icon: z.string(), text: z.string() })),
+  activities: z.array(
+    z.object({
+      name: z.string(),
+      description: z.string(),
+      duration_hours: z.number(),
+      cost_usd: z.number(),
+      weather_dependent: z.boolean(),
+    })
+  ),
+});
+
+export type ExplorePlacesProps = z.infer<typeof explorePlacesPropsSchema>;
+export type PackingChecklistProps = z.infer<typeof packingChecklistPropsSchema>;
+export type TravelActivityCardsProps = z.infer<typeof travelActivityCardsPropsSchema>;
+export type TravelDestinationGuideProps = z.infer<typeof travelDestinationGuidePropsSchema>;

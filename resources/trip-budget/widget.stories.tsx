@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { TripBudgetLayout } from "./widget";
 import type { TripBudgetProps } from "@/domain/widgetTypes";
 
+import * as fixtures from "../stories/fixtures/travelFixtures";
+
 const mockTrip = {
   id: "trip-1",
   title: "Tokyo & Kyoto Adventure",
@@ -11,6 +13,17 @@ const mockTrip = {
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
 };
+
+// Helper to map fixture Trip to domain Trip
+const mapTrip = (t: any) => ({
+  id: t.id,
+  title: t.title,
+  destination: "Amsterdam",
+  start_date: "2026-05-01",
+  end_date: "2026-05-05",
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+});
 
 const defaultProps: TripBudgetProps = {
   trip: mockTrip,
@@ -38,6 +51,7 @@ const defaultProps: TripBudgetProps = {
 const meta: Meta<typeof TripBudgetLayout> = {
   title: "Widgets/TripBudget",
   component: TripBudgetLayout,
+  tags: ["autodocs"],
   parameters: { layout: "padded" },
 };
 
@@ -46,6 +60,35 @@ type Story = StoryObj<typeof TripBudgetLayout>;
 
 export const Default: Story = {
   args: { props: defaultProps },
+};
+
+export const Amsterdam: Story = {
+  args: {
+    props: {
+      trip: mapTrip(fixtures.amsterdamTrip),
+      spent: fixtures.tripBudgetAmsterdam.spent,
+      target: fixtures.tripBudgetAmsterdam.target,
+      remaining: fixtures.tripBudgetAmsterdam.remaining,
+      percent_used: fixtures.tripBudgetAmsterdam.percent_used,
+      currency: fixtures.tripBudgetAmsterdam.currency,
+      category_totals: fixtures.tripBudgetAmsterdam.category_totals,
+      rows: fixtures.tripBudgetAmsterdam.rows.map((row) => ({
+        id: Math.random().toString(36).substr(2, 9),
+        title: row.title,
+        item_type: row.item_type,
+        status: row.status,
+        amount: row.amount,
+        currency: fixtures.tripBudgetAmsterdam.currency,
+        note: "",
+      })),
+      counts: {
+        priced_items: 4,
+        tracked_categories: 3,
+        party_size: 2,
+        nights: 4,
+      },
+    },
+  },
 };
 
 export const OverBudget: Story = {
@@ -81,5 +124,14 @@ export const NoItems: Story = {
       category_totals: [],
       counts: { priced_items: 0, tracked_categories: 0, party_size: 2, nights: 14 },
     },
+  },
+};
+
+export const ErrorState: Story = {
+  args: {
+    props: {
+      ...defaultProps,
+      error: fixtures.errorOutput.error,
+    } as any,
   },
 };
