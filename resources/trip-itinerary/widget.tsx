@@ -15,17 +15,14 @@ export const widgetMetadata: WidgetMetadata = {
   },
 };
 
-const TripItineraryWidget: React.FC = () => {
-  const { props, isPending } = useWidget<TripItineraryProps>();
-  if (isPending) return <Loading />;
-
+export const TripItineraryLayout: React.FC<{ props: TripItineraryProps }> = ({ props }) => {
   return (
     <McpUseProvider>
       <section className="widget">
         <div className="header">
           <div>
             <h1 className="title">{props.trip.title}</h1>
-            <div className="subtitle">Day-by-day plan</div>
+            <div className="subtitle">Day-By-Day Plan</div>
           </div>
           <span className="pill">{props.counts.scheduled} scheduled</span>
         </div>
@@ -44,7 +41,7 @@ const TripItineraryWidget: React.FC = () => {
           ))}
           {props.unscheduled.length > 0 ? (
             <section className="card">
-              <h2 className="lane-title">Needs day assignment</h2>
+              <h2 className="lane-title">Needs Day Assignment</h2>
               <p className="item-text">{props.unscheduled.length} saved item(s)</p>
             </section>
           ) : null}
@@ -54,11 +51,18 @@ const TripItineraryWidget: React.FC = () => {
   );
 };
 
+const TripItineraryWidget: React.FC = () => {
+  const { props, isPending } = useWidget<TripItineraryProps>();
+  if (isPending) return <Loading />;
+
+  return <TripItineraryLayout props={props} />;
+};
+
 function Loading() {
   return (
     <McpUseProvider>
       <section className="widget">
-        <div className="header"><h1 className="title">Trip itinerary</h1></div>
+        <div className="header"><h1 className="title">Trip Itinerary</h1></div>
         <div className="skeleton" />
       </section>
     </McpUseProvider>

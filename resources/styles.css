@@ -36,6 +36,7 @@ body {
   font-size: 18px;
   line-height: 1.2;
   font-weight: 700;
+  text-wrap: balance;
 }
 
 .subtitle,
@@ -79,17 +80,27 @@ body {
   padding: 10px;
 }
 
+.card:hover {
+  background: #f8fafc;
+}
+
 .lane-title {
   margin: 0 0 8px;
   color: #303946;
   font-size: 13px;
   font-weight: 750;
+  text-wrap: balance;
 }
 
 .item {
   min-width: 0;
   padding: 8px 0;
   border-top: 1px solid #edf1f5;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.item:hover {
+  background-color: #f8fafc;
 }
 
 .item:first-child {
@@ -194,6 +205,11 @@ body {
 
   .item {
     border-top-color: #2b3542;
+  }
+
+  .card:hover,
+  .item:hover {
+    background-color: #22303f;
   }
 
   .progress {

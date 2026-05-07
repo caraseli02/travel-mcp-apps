@@ -15,17 +15,14 @@ export const widgetMetadata: WidgetMetadata = {
   },
 };
 
-const TripInboxWidget: React.FC = () => {
-  const { props, isPending } = useWidget<TripInboxProps>();
-  if (isPending) return <Loading title="Trip inbox" />;
-
+export const TripInboxLayout: React.FC<{ props: TripInboxProps }> = ({ props }) => {
   return (
     <McpUseProvider>
       <section className="widget">
         <div className="header">
           <div>
             <h1 className="title">{props.trip.title}</h1>
-            <div className="subtitle">Inbox fragments awaiting triage</div>
+            <div className="subtitle">Inbox Fragments Awaiting Triage</div>
           </div>
           <span className="pill">{props.items.length} inbox</span>
         </div>
@@ -39,6 +36,13 @@ const TripInboxWidget: React.FC = () => {
       </section>
     </McpUseProvider>
   );
+};
+
+const TripInboxWidget: React.FC = () => {
+  const { props, isPending } = useWidget<TripInboxProps>();
+  if (isPending) return <Loading title="Trip Inbox" />;
+
+  return <TripInboxLayout props={props} />;
 };
 
 function TripItemRow({ item }: { item: TripInboxProps["items"][number] }) {

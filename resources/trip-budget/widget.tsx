@@ -15,10 +15,17 @@ export const widgetMetadata: WidgetMetadata = {
   },
 };
 
-const TripBudgetWidget: React.FC = () => {
-  const { props, isPending } = useWidget<TripBudgetProps>();
-  if (isPending) return <Loading />;
+export const TripBudgetLayout: React.FC<{ props: TripBudgetProps }> = ({ props }) => {
   const width = `${Math.min(100, Math.max(0, props.percent_used))}%`;
+  
+  // Create a formatter for the trip's currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: props.currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   return (
     <McpUseProvider>
@@ -26,9 +33,9 @@ const TripBudgetWidget: React.FC = () => {
         <div className="header">
           <div>
             <h1 className="title">{props.trip.title}</h1>
-            <div className="subtitle">Spending tracker</div>
+            <div className="subtitle">Spending Tracker</div>
           </div>
-          <span className="pill">{props.currency} {props.spent}</span>
+          <span className="pill">{formatCurrency(props.spent)}</span>
         </div>
         <div className="grid">
           <section className="card">
@@ -38,7 +45,7 @@ const TripBudgetWidget: React.FC = () => {
             </div>
             <div className="progress" aria-label="Budget used"><span style={{ width }} /></div>
             <p className="item-text">
-              {props.target == null ? "No budget target saved." : `${props.remaining} ${props.currency} remaining of ${props.target}.`}
+              {props.target == null ? "No budget target saved." : `${formatCurrency(props.remaining ?? 0)} remaining of ${formatCurrency(props.target)}.`}
             </p>
           </section>
           {props.rows.length === 0 ? <p className="empty">No priced items saved yet.</p> : null}
@@ -48,7 +55,7 @@ const TripBudgetWidget: React.FC = () => {
                 <p className="item-title">{row.title}</p>
                 <p className="item-text">{row.item_type} · {row.status}</p>
               </div>
-              <span className="amount">{row.currency} {row.amount}</span>
+              <span className="amount">{formatCurrency(row.amount)}</span>
             </article>
           ))}
         </div>
@@ -57,11 +64,18 @@ const TripBudgetWidget: React.FC = () => {
   );
 };
 
+const TripBudgetWidget: React.FC = () => {
+  const { props, isPending } = useWidget<TripBudgetProps>();
+  if (isPending) return <Loading />;
+
+  return <TripBudgetLayout props={props} />;
+};
+
 function Loading() {
   return (
     <McpUseProvider>
       <section className="widget">
-        <div className="header"><h1 className="title">Trip budget</h1></div>
+        <div className="header"><h1 className="title">Trip Budget</h1></div>
         <div className="skeleton" />
       </section>
     </McpUseProvider>

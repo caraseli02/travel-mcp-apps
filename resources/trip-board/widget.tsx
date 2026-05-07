@@ -16,24 +16,21 @@ export const widgetMetadata: WidgetMetadata = {
 };
 
 const laneLabels: Array<[keyof TripBoardProps["lanes"], string]> = [
-  ["open_decisions", "Open decisions"],
+  ["open_decisions", "Open Decisions"],
   ["shortlisted", "Shortlisted"],
   ["booked", "Booked"],
-  ["itinerary_draft", "Itinerary draft"],
-  ["missing_pieces", "Missing pieces"],
+  ["itinerary_draft", "Itinerary Draft"],
+  ["missing_pieces", "Missing Pieces"],
 ];
 
-const TripBoardWidget: React.FC = () => {
-  const { props, isPending } = useWidget<TripBoardProps>();
-  if (isPending) return <Loading />;
-
+export const TripBoardLayout: React.FC<{ props: TripBoardProps }> = ({ props }) => {
   return (
     <McpUseProvider>
       <section className="widget">
         <div className="header">
           <div>
             <h1 className="title">{props.trip.title}</h1>
-            <div className="subtitle">Decision board</div>
+            <div className="subtitle">Decision Board</div>
           </div>
           <span className="pill">{props.counts.total} saved</span>
         </div>
@@ -63,11 +60,18 @@ const TripBoardWidget: React.FC = () => {
   );
 };
 
+const TripBoardWidget: React.FC = () => {
+  const { props, isPending } = useWidget<TripBoardProps>();
+  if (isPending) return <Loading />;
+
+  return <TripBoardLayout props={props} />;
+};
+
 function Loading() {
   return (
     <McpUseProvider>
       <section className="widget">
-        <div className="header"><h1 className="title">Trip board</h1></div>
+        <div className="header"><h1 className="title">Trip Board</h1></div>
         <div className="skeleton" />
       </section>
     </McpUseProvider>
