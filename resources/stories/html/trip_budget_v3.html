@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spending tracker</title>
+<style>
+*,*::before,*::after{box-sizing:border-box}[hidden]{display:none!important}:root{color-scheme:light;--bg:#fff;--surface:#f7f7f7;--surface-2:#fbfbfb;--line:#e8e3dc;--line-strong:#d7d0c6;--text:#171412;--muted:#6f6a64;--soft:#9b948c;--accent:#9a4f2f;--danger:#a03a2b;--radius:10px;--shadow:0 1px 2px rgba(23,20,18,.04),0 8px 28px rgba(23,20,18,.06)}body{margin:0;min-width:280px;background:Canvas;color:CanvasText;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.45;overflow-x:hidden}button{font:inherit;color:inherit}.shell{max-width:720px;margin:0 auto;padding:14px}.section-head{margin-bottom:10px}.section-kicker{color:var(--soft);font-size:11px;font-weight:650;letter-spacing:.06em;text-transform:uppercase}.section-title{margin:3px 0 0;color:var(--text);font-size:15px;font-weight:650}.section-desc{margin:2px 0 0;color:var(--muted);font-size:12px}.widget{border:1px solid var(--line);border-radius:var(--radius);background:var(--bg);box-shadow:var(--shadow);overflow:hidden}.empty,.error{min-height:236px;display:grid;place-items:center;padding:28px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);color:var(--muted);font-size:14px;text-align:center}.error{color:var(--danger)}.budget-grid{display:grid;grid-template-columns:1fr 148px;gap:12px;align-items:center;padding:13px}.budget-total h2{margin:0;color:var(--muted);font-size:12px;font-weight:650}.amount{margin-top:2px;color:var(--text);font-size:25px;font-weight:730;line-height:1;font-variant-numeric:tabular-nums}.amount small{color:var(--soft);font-size:13px;font-weight:500}.donut{width:126px;aspect-ratio:1;justify-self:end;border-radius:50%;background:conic-gradient(var(--accent) 0 var(--degrees),var(--surface) var(--degrees) 360deg);display:grid;place-items:center}.donut::after{content:attr(data-label);width:82px;aspect-ratio:1;display:grid;place-items:center;border-radius:50%;background:var(--bg);color:var(--muted);font-size:12px;font-weight:650;text-align:center}.rows{border-top:1px solid var(--line)}.row{display:grid;grid-template-columns:84px 1fr 58px;gap:9px;align-items:center;padding:8px 13px;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}.row-name{color:var(--muted);font-size:12px}.track{height:5px;border-radius:999px;background:var(--surface);overflow:hidden}.fill{display:block;height:100%;border-radius:inherit;background:var(--accent)}.row-amt{text-align:right;color:var(--text);font-size:12px;font-weight:650;font-variant-numeric:tabular-nums}.card-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding:10px 13px;border-top:1px solid var(--line);background:var(--surface-2)}.btn{appearance:none;border:1px solid var(--line-strong);border-radius:8px;background:var(--bg);color:var(--text);min-height:34px;padding:0 11px;font-size:12px;font-weight:600}.btn.primary{border-color:var(--accent);background:var(--accent);color:#fff}
+@media(max-width:640px){.budget-grid{grid-template-columns:1fr}.donut{justify-self:start;width:108px}.card-actions{justify-content:flex-start}}@media(max-width:430px){.row{grid-template-columns:74px 1fr 54px}}
+</style>
+</head>
+<body>
+<main class="shell" aria-live="polite">
+  <section class="empty" id="empty">Waiting for budget data...</section>
+  <section id="content" hidden>
+    <div class="section-head"><div class="section-kicker">Budget</div><h1 class="section-title">Spending tracker</h1><p class="section-desc">Only the values that change the next decision are surfaced.</p></div>
+    <article class="widget" aria-label="Spending tracker">
+      <div class="budget-grid"><div class="budget-total"><h2 id="tripTitle">Trip</h2><div class="amount" id="amount"></div><p class="section-desc" id="remaining"></p></div><div class="donut" id="donut" data-label="0% used"></div></div>
+      <div class="rows" id="rows"></div>
+      <div class="card-actions"><button class="btn" type="button">Find cheaper options</button><button class="btn primary" type="button">Set alerts</button></div>
+    </article>
+  </section>
+</main>
+<script>
+const elements={empty:document.getElementById("empty"),content:document.getElementById("content"),tripTitle:document.getElementById("tripTitle"),amount:document.getElementById("amount"),remaining:document.getElementById("remaining"),donut:document.getElementById("donut"),rows:document.getElementById("rows")};
+function unwrapToolOutput(raw){return raw?.structuredContent??raw?.toolOutput??raw}
+function money(value,currency){const symbol=currency==="EUR"?"EUR":currency||"EUR";if(value===undefined||value===null)return"not set";return symbol+" "+Number(value).toLocaleString(undefined,{maximumFractionDigits:0})}
+function showEmpty(message){elements.empty.textContent=message;elements.empty.className="empty";elements.empty.hidden=false;elements.content.hidden=true}
+function showError(message){elements.empty.textContent=message||"Budget data is unavailable.";elements.empty.className="error";elements.empty.hidden=false;elements.content.hidden=true}
+function renderRows(rows,currency,target){elements.rows.replaceChildren();(rows||[]).slice(0,5).forEach(entry=>{const row=document.createElement("div");row.className="row";const width=target?Math.min(100,Math.round(Number(entry.amount||0)/target*100)):35;row.innerHTML='<div class="row-name"></div><div class="track"><span class="fill"></span></div><div class="row-amt"></div>';row.querySelector(".row-name").textContent=entry.title||entry.category||"Item";row.querySelector(".fill").style.width=width+"%";row.querySelector(".row-amt").textContent=money(entry.amount,currency);elements.rows.appendChild(row)})}
+function render(raw){const output=unwrapToolOutput(raw);if(!output)return;if(output.error){showError(output.error);return}const rows=Array.isArray(output.rows)?output.rows:[];if(!output.trip?.title&&rows.length===0){showEmpty("No budget data was returned.");return}const currency=output.currency||"EUR";const spent=Number(output.spent||0);const target=Number(output.target||0);const percent=target?Math.max(0,Math.min(100,Math.round(spent/target*100))):0;elements.empty.hidden=true;elements.content.hidden=false;elements.tripTitle.textContent=output.trip?.title||"Trip";elements.amount.innerHTML=money(spent,currency)+(target?" <small>/ "+money(target,currency)+"</small>":"");elements.remaining.textContent=target?money(Math.abs(output.remaining||0),currency)+(Number(output.remaining||0)>=0?" remaining":" over target"):"Save a budget target to compare planned spending.";elements.donut.style.setProperty("--degrees",Math.round(percent/100*360)+"deg");elements.donut.dataset.label=percent+"% used";renderRows(rows.length?rows:output.category_totals,currency,target||spent||1)}
+function currentToolOutput(){return window.openai?.toolOutput}
+render(currentToolOutput());let checksRemaining=50;const checkForLateOutput=window.setInterval(()=>{render(currentToolOutput());checksRemaining-=1;if(checksRemaining<=0||currentToolOutput())window.clearInterval(checkForLateOutput)},100);
+window.addEventListener("message",(event)=>{let message=event.data;if(typeof message==="string"){try{message=JSON.parse(message)}catch{return}}if(message?.jsonrpc==="2.0"&&message.method==="ui/notifications/tool-result")render(message.params)},{passive:true});
+window.addEventListener("openai:set_globals",(event)=>{render(event.detail?.globals?.toolOutput??window.openai?.toolOutput)},{passive:true});
+</script>
+</body>
+</html>
