@@ -5,6 +5,7 @@ import { TripInboxLayout } from "../trip-inbox/widget";
 import { TripBoardLayout } from "../trip-board/widget";
 import { TripItineraryLayout } from "../trip-itinerary/widget";
 import { TripBudgetLayout } from "../trip-budget/widget";
+import { TripClarificationLayout } from "../trip-clarification/widget";
 import { ExplorePlacesLayout } from "../explore-places/widget";
 import { TravelDestinationGuideLayout } from "../travel-destination-guide/widget";
 import { TravelActivityCardsLayout } from "../travel-activity-cards/widget";
@@ -63,6 +64,80 @@ export const Case1CreateTrip: Story = {
       {
         role: "assistant",
         text: "I've set up your Barcelona trip workspace! What would you like to save to it?",
+      },
+    ],
+  },
+};
+
+export const Case1ClarifyTrip: Story = {
+  name: "Case 1A: Clarify Trip Intent",
+  args: {
+    turns: [
+      {
+        role: "user",
+        text: "I want to plan a trip to Venecia",
+      },
+      {
+        role: "assistant",
+        text: "I'll help you shape the trip before creating the workspace.",
+        widget: (
+          <TripClarificationLayout
+            props={{
+              session_id: "workflow-venice-clarify",
+              intent: "plan_trip",
+              destination: "Venice",
+              current_index: 0,
+              total_questions: 3,
+              known_fields: { destination: "Venice" },
+              answers: {},
+              questions: [
+                {
+                  id: "duration",
+                  prompt: "How long are you planning to stay in Venice?",
+                  reason: "This sets the itinerary depth and pace.",
+                  required: false,
+                  answer_type: "single_choice",
+                  options: [
+                    { id: "duration-1", label: "1-2 days", value: "1-2 days" },
+                    { id: "duration-2", label: "3-4 days", value: "3-4 days" },
+                    { id: "duration-3", label: "5-7 days", value: "5-7 days" },
+                    { id: "duration-4", label: "1+ weeks", value: "1+ weeks" },
+                  ],
+                  allow_free_text: true,
+                  allow_skip: true,
+                },
+                {
+                  id: "style",
+                  prompt: "What's your main travel style?",
+                  required: false,
+                  answer_type: "single_choice",
+                  options: [
+                    { id: "style-1", label: "Cultural & sightseeing", value: "culture" },
+                    { id: "style-2", label: "Food & local experiences", value: "food" },
+                    { id: "style-3", label: "Relaxation & photography", value: "relaxed" },
+                    { id: "style-4", label: "Mixed experience", value: "mixed" },
+                  ],
+                  allow_free_text: true,
+                  allow_skip: true,
+                },
+                {
+                  id: "season",
+                  prompt: "When are you thinking of going?",
+                  required: false,
+                  answer_type: "single_choice",
+                  options: [
+                    { id: "season-1", label: "Summer (peak season)", value: "summer" },
+                    { id: "season-2", label: "Spring/Fall (shoulder)", value: "shoulder" },
+                    { id: "season-3", label: "Winter (quiet)", value: "winter" },
+                    { id: "season-4", label: "No preference yet", value: "no preference" },
+                  ],
+                  allow_free_text: true,
+                  allow_skip: true,
+                },
+              ],
+            }}
+          />
+        ),
       },
     ],
   },

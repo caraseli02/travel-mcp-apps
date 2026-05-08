@@ -41,6 +41,8 @@ describe("MCP integration", () => {
     const renderBoardTool = requireTool(tools, "render_trip_board");
     const itineraryTool = requireTool(tools, "get_trip_itinerary");
     const budgetTool = requireTool(tools, "get_trip_budget");
+    const askClarificationTool = requireTool(tools, "ask_trip_clarification");
+    const clarificationTool = requireTool(tools, "render_trip_clarification");
 
     expectRequiredFields(createTripTool, ["title", "destination", "start_date", "end_date"]);
     expectRequiredFields(addItemTool, [
@@ -61,6 +63,8 @@ describe("MCP integration", () => {
     expect(renderBoardTool._meta?.["openai/outputTemplate"]).toEqual(expect.stringContaining("trip-board"));
     expect(itineraryTool._meta?.["openai/outputTemplate"]).toEqual(expect.stringContaining("trip-itinerary"));
     expect(budgetTool._meta?.["openai/outputTemplate"]).toEqual(expect.stringContaining("trip-budget"));
+    expect(askClarificationTool._meta?.["openai/outputTemplate"]).toEqual(expect.stringContaining("trip-clarification"));
+    expect(clarificationTool._meta?.["openai/outputTemplate"]).toEqual(expect.stringContaining("trip-clarification"));
 
     const created = await session.callTool("create_trip", {
       title: "Lisbon",
@@ -127,6 +131,22 @@ describe("MCP integration", () => {
     const structuredBudget = expectStructured(budget) as { spent: number; rows: Array<{ id: string; amount: number }> };
     expect(structuredBudget).toMatchObject({ spent: 12, rows: [{ id: item.id, amount: 12 }] });
     expect(budget.content[0]).toMatchObject({ type: "text", text: "Showing spending tracker for Lisbon." });
+
+    const clarification = await session.callTool("render_trip_clarification", {
+      utterance: "I want to book hotel in Lisbon",
+      intent: "",
+      destination: "",
+      trip_id: trip.id,
+      known_fields_json: "{}",
+    });
+    const structuredClarification = expectStructured(clarification) as {
+      intent: string;
+      destination: string;
+      questions: Array<{ id: string }>;
+    };
+    expect(structuredClarification.intent).toBe("book_hotel");
+    expect(structuredClarification.destination).toBe("Lisbon");
+    expect(structuredClarification.questions.map((question) => question.id)).toEqual(["hotel_area", "hotel_budget"]);
   }, 30_000);
 });
 

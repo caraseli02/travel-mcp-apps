@@ -7,8 +7,11 @@ import {
   getTripBudget,
   getTripItinerary,
   getTripSummary,
+  prepareTripClarification,
+  renderTripClarification,
   renderTripBoard,
   resetTripStoreForTests,
+  submitTripClarification,
   updateTripItemStatus,
 } from "@/tools/travelAgent";
 
@@ -93,5 +96,95 @@ describe("travel agent tools", () => {
     const result = await createTrip({ title: "  ", destination: null, start_date: null, end_date: null });
     expect(result.isError).toBe(true);
     expect(result.structuredContent).toEqual({ error: "trip title is required." });
+  });
+
+  it("prepares intent-specific trip clarification questions", async () => {
+    const trip = await prepareTripClarification({
+      utterance: "I want to plan a trip to Venice",
+      intent: "",
+      destination: "",
+      trip_id: "",
+      known_fields_json: "{}",
+    });
+    const hotel = await prepareTripClarification({
+      utterance: "I want to book hotel in Paris",
+      intent: "",
+      destination: "",
+      trip_id: "",
+      known_fields_json: "{}",
+    });
+    const flight = await prepareTripClarification({
+      utterance: "I want to book fly to Tokyo",
+      intent: "",
+      destination: "",
+      trip_id: "",
+      known_fields_json: "{}",
+    });
+
+    expect(trip.structuredContent).toMatchObject({ intent: "plan_trip", destination: "Venice" });
+    expect((trip.structuredContent?.questions as Array<{ id: string }>).map((question) => question.id)).toEqual([
+      "duration",
+      "travel_style",
+      "timing",
+    ]);
+    expect(hotel.structuredContent).toMatchObject({ intent: "book_hotel", destination: "Paris" });
+    expect((hotel.structuredContent?.questions as Array<{ id: string }>)[0].id).toBe("hotel_dates");
+    expect(flight.structuredContent).toMatchObject({ intent: "book_flight", destination: "Tokyo" });
+    expect((flight.structuredContent?.questions as Array<{ id: string }>)[0].id).toBe("origin");
+  });
+
+  it("omits clarification questions from known model fields and existing trip state", async () => {
+    const trip = await store.createTrip("Venice Trip", "Venice", "2026-06-01", "2026-06-04");
+    await addTripItem({ trip_id: trip.id, raw_content: "Hotel Ala confirmed", item_type: "hotel", title: "Hotel Ala" });
+
+    const result = await prepareTripClarification({
+      utterance: "I want to plan a trip to Venice",
+      intent: "plan_trip",
+      destination: "",
+      trip_id: trip.id,
+      known_fields_json: JSON.stringify({ travel_style: "food" }),
+    });
+    const questionIds = (result.structuredContent?.questions as Array<{ id: string }>).map((question) => question.id);
+
+    expect(result.structuredContent).toMatchObject({
+      destination: "Venice",
+      known_fields: expect.objectContaining({ has_hotel: true, travel_style: "food" }),
+    });
+    expect(questionIds).not.toContain("duration");
+    expect(questionIds).not.toContain("travel_style");
+  });
+
+  it("renders and summarizes trip clarification answers", async () => {
+    const rendered = await renderTripClarification({
+      utterance: "I want to book hotel in Paris",
+      intent: "",
+      destination: "",
+      trip_id: "",
+      known_fields_json: "{}",
+    });
+    const session = rendered.structuredContent;
+
+    expect(rendered.isError).not.toBe(true);
+    expect(rendered.content[0]).toMatchObject({ type: "text", text: "Opened 3 clarification question(s) for Paris." });
+
+    const submitted = await submitTripClarification({
+      session_json: JSON.stringify(session),
+      answers_json: JSON.stringify({
+        hotel_dates: "3-4 nights",
+        hotel_area: "central",
+        hotel_budget: "120-220",
+      }),
+    });
+
+    expect(submitted.structuredContent).toMatchObject({
+      recommended_next_action: "save_hotel_request",
+      resolved_fields: {
+        hotel_dates: "3-4 nights",
+        hotel_area: "central",
+        hotel_budget: "120-220",
+      },
+      remaining_fields: [],
+    });
+    expect(submitted._meta).toMatchObject({ "openai/closeWidget": true });
   });
 });

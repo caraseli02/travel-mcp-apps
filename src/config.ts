@@ -7,14 +7,19 @@ export type Settings = {
 };
 
 export function getSettings(env: NodeJS.ProcessEnv = process.env): Settings {
-  const backend = (env.TRIP_STORE_BACKEND ?? "postgres").trim().toLowerCase();
+  const databaseUrl = [env.DATABASE_URL, env.NEON_DATABASE_URL, env.SUPABASE_DATABASE_URL]
+    .map((value) => value?.trim() ?? "")
+    .find(Boolean) ?? "";
+
+  const defaultBackend = databaseUrl ? "postgres" : "file";
+  const backend = (env.TRIP_STORE_BACKEND ?? defaultBackend).trim().toLowerCase();
+
   return {
     environment: env.NODE_ENV ?? "development",
     tripStoreBackend: backend === "file" ? "file" : "postgres",
     tripStoreFilePath: env.TRIP_STORE_FILE_PATH ?? "/tmp/travel-mcp-trips.json",
-    databaseUrl: [env.DATABASE_URL, env.NEON_DATABASE_URL, env.SUPABASE_DATABASE_URL]
-      .map((value) => value?.trim() ?? "")
-      .find(Boolean) ?? "",
+    databaseUrl,
     mcpUrl: env.MCP_URL ?? "http://localhost:3000",
   };
 }
+

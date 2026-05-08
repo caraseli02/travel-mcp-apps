@@ -3,6 +3,11 @@ import { type MCPServer, object, text, widget } from "mcp-use/server";
 import { z } from "zod";
 import { getSettings } from "@/config";
 import {
+  buildClarificationSession,
+  summarizeClarification,
+  type ClarificationSession,
+} from "@/domain/clarification";
+import {
   buildBoard,
   buildBudget,
   buildItinerary,
@@ -77,6 +82,23 @@ const updateStatusSchema = z.object({
   notes: z.string().describe("Updated notes or decision context. Use an empty string to keep the existing value."),
 });
 
+const prepareClarificationSchema = z.object({
+  utterance: z.string().describe("The user's original travel planning or booking request"),
+  intent: z.string().describe("One of plan_trip, book_hotel, or book_flight. Use an empty string to infer from utterance."),
+  destination: z.string().describe("Primary destination from the user's request. Use an empty string if unknown."),
+  trip_id: z.string().describe("Existing saved trip workspace id. Use an empty string if there is no existing trip."),
+  known_fields_json: z
+    .string()
+    .describe("JSON object of model-known facts from conversation or memory, such as duration, dates, party_size, budget, origin, interests. Use {} if none."),
+});
+
+const renderClarificationSchema = prepareClarificationSchema;
+
+const submitClarificationSchema = z.object({
+  session_json: z.string().describe("JSON object returned by prepare_trip_clarification or rendered in the trip clarification widget"),
+  answers_json: z.string().describe("JSON object mapping question ids to selected answers, arrays of selected answers, free text, or skipped"),
+});
+
 type CreateTripInput = Omit<z.infer<typeof createTripSchema>, "destination" | "start_date" | "end_date"> & {
   destination?: string | null;
   start_date?: string | null;
@@ -102,13 +124,22 @@ type UpdateStatusInput = Omit<z.infer<typeof updateStatusSchema>, "day_label" | 
   notes?: string | null;
 };
 
+type PrepareClarificationToolInput = Omit<z.infer<typeof prepareClarificationSchema>, "intent" | "destination" | "trip_id" | "known_fields_json"> & {
+  intent?: string | null;
+  destination?: string | null;
+  trip_id?: string | null;
+  known_fields_json?: string | null;
+};
+
+type SubmitClarificationToolInput = z.infer<typeof submitClarificationSchema>;
+
 export function registerTravelAgentTools(server: MCPServer): void {
   server.tool(
     {
       name: "create_trip",
       title: "Create trip workspace",
       description:
-        "Use this when the user wants a saved trip workspace for collecting options, decisions, itinerary items, and budget notes.",
+        "Use this only after the user has confirmed they want a saved trip workspace or after clarification answers are collected. Do not use this as the first action for vague requests like 'I want to plan a trip to X', 'I want to book hotel in X', or 'I want to book fly to X'; use ask_trip_clarification for those first.",
       schema: createTripSchema,
       annotations: MUTATION,
       _meta: statusMeta("Creating trip workspace", "Created trip workspace"),
@@ -215,6 +246,58 @@ export function registerTravelAgentTools(server: MCPServer): void {
       _meta: statusMeta("Summarizing trip", "Summarized trip"),
     },
     getTripSummary
+  );
+
+  server.tool(
+    {
+      name: "prepare_trip_clarification",
+      title: "Prepare trip clarification questions",
+      description:
+        "Use this when the user gives an underspecified travel request such as planning a trip, booking a hotel, or booking a flight and a few structured follow-up questions would help. Returns reusable structured question data without rendering UI.",
+      schema: prepareClarificationSchema,
+      annotations: READ_ONLY,
+      _meta: statusMeta("Preparing trip questions", "Prepared trip questions"),
+    },
+    prepareTripClarification
+  );
+
+  server.tool(
+    {
+      name: "ask_trip_clarification",
+      title: "Ask trip clarification questions",
+      description:
+        "Use this as the first action for simple underspecified travel requests: 'I want to plan a trip to X', 'I want to book hotel in X', or 'I want to book fly to X'. This renders the interactive question widget instead of creating a trip immediately.",
+      schema: renderClarificationSchema,
+      annotations: READ_ONLY,
+      widget: { name: "trip-clarification", invoking: "Opening trip questions", invoked: "Opened trip questions" },
+    },
+    renderTripClarification
+  );
+
+  server.tool(
+    {
+      name: "render_trip_clarification",
+      title: "Render trip clarification widget",
+      description:
+        "Use this to render the compact interactive clarification widget when question data should be shown visually. For first-turn simple travel requests, prefer ask_trip_clarification.",
+      schema: renderClarificationSchema,
+      annotations: READ_ONLY,
+      widget: { name: "trip-clarification", invoking: "Opening trip questions", invoked: "Opened trip questions" },
+    },
+    renderTripClarification
+  );
+
+  server.tool(
+    {
+      name: "submit_trip_clarification",
+      title: "Submit trip clarification answers",
+      description:
+        "Use this after the user answers trip clarification questions. It summarizes selected answers and recommends whether to create a trip, save hotel constraints, save flight constraints, or ask a text follow-up.",
+      schema: submitClarificationSchema,
+      annotations: MUTATION,
+      _meta: statusMeta("Saving trip answers", "Saved trip answers"),
+    },
+    submitTripClarification
   );
 }
 
@@ -328,6 +411,32 @@ export async function getTripSummary(input: z.infer<typeof tripIdSchema>): Promi
   });
 }
 
+export async function prepareTripClarification(input: PrepareClarificationToolInput): Promise<CallToolResult> {
+  return runTripTool(async () => {
+    const session = await buildSessionFromToolInput(input);
+    return withText(object(session), `Prepared ${session.total_questions} clarification question(s).`);
+  });
+}
+
+export async function renderTripClarification(input: PrepareClarificationToolInput): Promise<CallToolResult> {
+  return runTripTool(async () => {
+    const session = await buildSessionFromToolInput(input);
+    return widget({
+      props: session,
+      output: text(`Opened ${session.total_questions} clarification question(s) for ${session.destination ?? "the trip"}.`),
+    });
+  });
+}
+
+export async function submitTripClarification(input: SubmitClarificationToolInput): Promise<CallToolResult> {
+  return runTripTool(async () => {
+    const session = parseJsonObject<ClarificationSession>(input.session_json, "session_json");
+    const answers = parseJsonObject<Record<string, unknown>>(input.answers_json, "answers_json");
+    const result = summarizeClarification(session, answers);
+    return closeWidget(withText(object(result), result.summary));
+  });
+}
+
 function statusMeta(invoking: string, invoked: string): Record<string, string> {
   return {
     "openai/toolInvocation/invoking": invoking,
@@ -351,6 +460,44 @@ async function runTripTool(action: () => Promise<CallToolResult>): Promise<CallT
   }
 }
 
+async function buildSessionFromToolInput(input: PrepareClarificationToolInput): Promise<ClarificationSession> {
+  const tripId = emptyToNull(input.trip_id);
+  const known_fields = parseJsonObject<Record<string, unknown>>(input.known_fields_json || "{}", "known_fields_json");
+  if (!tripId) {
+    return buildClarificationSession({
+      utterance: input.utterance,
+      intent: emptyToNull(input.intent),
+      destination: emptyToNull(input.destination),
+      known_fields,
+    });
+  }
+
+  const tripStore = getTripStore();
+  const trip = await tripStore.getTrip(tripId);
+  const items = await tripStore.listItems(tripId);
+  return buildClarificationSession({
+    utterance: input.utterance,
+    intent: emptyToNull(input.intent),
+    destination: emptyToNull(input.destination),
+    known_fields,
+    trip,
+    items,
+  });
+}
+
+function parseJsonObject<T extends Record<string, unknown>>(value: string, fieldName: string): T {
+  try {
+    const parsed = JSON.parse(value || "{}") as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new TripValidationError(`${fieldName} must be a JSON object.`);
+    }
+    return parsed as T;
+  } catch (error) {
+    if (error instanceof TripValidationError) throw error;
+    throw new TripValidationError(`${fieldName} must be valid JSON.`);
+  }
+}
+
 function toolError(message: string): CallToolResult {
   return {
     structuredContent: { error: message },
@@ -364,6 +511,16 @@ function withText(result: CallToolResult, message: string): CallToolResult {
   return {
     ...result,
     content: [{ type: "text", text: message }],
+  };
+}
+
+function closeWidget(result: CallToolResult): CallToolResult {
+  return {
+    ...result,
+    _meta: {
+      ...result._meta,
+      "openai/closeWidget": true,
+    },
   };
 }
 

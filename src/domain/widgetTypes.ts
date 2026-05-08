@@ -96,10 +96,40 @@ export const tripBudgetPropsSchema = z.object({
   }),
 });
 
+export const tripClarificationOptionSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  value: z.string(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
+});
+
+export const tripClarificationQuestionSchema = z.object({
+  id: z.string(),
+  prompt: z.string(),
+  reason: z.string().optional(),
+  required: z.boolean(),
+  answer_type: z.enum(["single_choice", "multi_choice", "free_text"]),
+  options: z.array(tripClarificationOptionSchema),
+  allow_free_text: z.boolean(),
+  allow_skip: z.boolean(),
+});
+
+export const tripClarificationPropsSchema = z.object({
+  session_id: z.string(),
+  intent: z.enum(["plan_trip", "book_hotel", "book_flight"]),
+  destination: nullableString,
+  current_index: z.number(),
+  total_questions: z.number(),
+  known_fields: z.record(z.string(), z.unknown()),
+  questions: z.array(tripClarificationQuestionSchema),
+  answers: z.record(z.string(), z.unknown()),
+});
+
 export type TripInboxProps = z.infer<typeof tripInboxPropsSchema>;
 export type TripBoardProps = z.infer<typeof tripBoardPropsSchema>;
 export type TripItineraryProps = z.infer<typeof tripItineraryPropsSchema>;
 export type TripBudgetProps = z.infer<typeof tripBudgetPropsSchema>;
+export type TripClarificationProps = z.infer<typeof tripClarificationPropsSchema>;
 
 export const explorePlaceSchema = z.object({
   id: z.string(),

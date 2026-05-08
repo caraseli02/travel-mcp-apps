@@ -50,6 +50,10 @@ npm run check      # Typecheck, tests, and build
 - `get_trip_itinerary`
 - `get_trip_budget`
 - `get_trip_summary`
+- `prepare_trip_clarification`
+- `ask_trip_clarification`
+- `render_trip_clarification`
+- `submit_trip_clarification`
 
 ## Project Structure
 
