@@ -631,6 +631,20 @@ class PostgresTripStore:
             rows = conn.execute(sql, params).fetchall()
         return [TripItem(**row) for row in rows]
 
+    def item_type_counts(self, trip_id: str) -> dict[str, int]:
+        self.get_trip(trip_id)
+        with self._pool.connection() as conn:
+            rows = conn.execute(
+                """
+                SELECT item_type, COUNT(*) AS count
+                FROM trip_items
+                WHERE trip_id = %s
+                GROUP BY item_type
+                """,
+                (trip_id,),
+            ).fetchall()
+        return {str(row["item_type"]): int(row["count"]) for row in rows}
+
     def update_item_status(
         self,
         item_id: str,
@@ -734,6 +748,14 @@ class InMemoryTripStore:
             if item.trip_id == trip_id and (status is None or item.status == status)
         ]
 
+    def item_type_counts(self, trip_id: str) -> dict[str, int]:
+        self.get_trip(trip_id)
+        counts = {item_type: 0 for item_type in ITEM_TYPES}
+        for item in self.items.values():
+            if item.trip_id == trip_id:
+                counts[item.item_type] = counts.get(item.item_type, 0) + 1
+        return {item_type: count for item_type, count in counts.items() if count > 0}
+
     def update_item_status(
         self,
         item_id: str,
@@ -819,6 +841,11 @@ class FileTripStore(InMemoryTripStore):
         with self._lock:
             self._load()
             return super().list_items(trip_id, status)
+
+    def item_type_counts(self, trip_id: str) -> dict[str, int]:
+        with self._lock:
+            self._load()
+            return super().item_type_counts(trip_id)
 
     def create_trip(
         self,

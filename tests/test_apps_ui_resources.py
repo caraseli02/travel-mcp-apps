@@ -4,6 +4,7 @@ from mcp_servers.packing_server import packing_checklist_ui
 from mcp_servers.travel_agent_server import (
     trip_board_ui,
     trip_budget_ui,
+    trip_clarification_ui,
     trip_inbox_ui,
     trip_itinerary_ui,
 )
@@ -24,6 +25,7 @@ WIDGETS: list[tuple[str, Callable[[], str], str]] = [
     ("ui://trip/board-v2.html", trip_board_ui, "Trip Board"),
     ("ui://trip/itinerary-v1.html", trip_itinerary_ui, "Day by day"),
     ("ui://trip/budget-v1.html", trip_budget_ui, "Spending tracker"),
+    ("ui://trip/clarification-v1.html", trip_clarification_ui, "Trip Clarification"),
 ]
 
 
@@ -55,3 +57,12 @@ def test_apps_ui_resources_include_bridge_update_handlers() -> None:
         assert "window.openai?.toolOutput" in html
         assert "openai:set_globals" in html
         assert "ui/notifications/tool-result" in html
+
+
+def test_trip_clarification_resource_includes_submit_and_close_bridge() -> None:
+    html = trip_clarification_ui()
+
+    assert "submit_trip_clarification" in html
+    assert "requestClose" in html
+    assert "callTool" in html
+    assert "sendFollowUpMessage" in html

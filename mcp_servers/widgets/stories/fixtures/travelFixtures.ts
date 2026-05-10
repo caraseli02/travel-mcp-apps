@@ -182,6 +182,34 @@ export interface TripItinerary {
   gaps: string[];
 }
 
+export interface ClarificationOption {
+  id: string;
+  label: string;
+  value: string;
+}
+
+export interface ClarificationQuestion {
+  id: string;
+  prompt: string;
+  reason?: string;
+  required: boolean;
+  answer_type: "single_choice" | "multi_choice" | "free_text";
+  options: ClarificationOption[];
+  allow_free_text: boolean;
+  allow_skip: boolean;
+}
+
+export interface TripClarification {
+  session_id: string;
+  intent: "plan_trip" | "book_hotel" | "book_flight";
+  destination: string | null;
+  current_index: number;
+  total_questions: number;
+  known_fields: Record<string, any>;
+  questions: ClarificationQuestion[];
+  answers: Record<string, any>;
+}
+
 export interface ErrorOutput {
   error: string;
 }
@@ -509,6 +537,116 @@ export const tripItineraryAmsterdam: TripItinerary = {
     },
   ],
   gaps: ["Add dinner plans for Day 2.", "Confirm airport transfer."],
+};
+
+export const tripClarificationVenice: TripClarification = {
+  session_id: "clarify-plan-trip-venice",
+  intent: "plan_trip",
+  destination: "Venice",
+  current_index: 0,
+  total_questions: 3,
+  known_fields: { destination: "Venice" },
+  questions: [
+    {
+      id: "duration",
+      prompt: "How long are you planning to stay in Venice?",
+      reason: "This helps shape the itinerary pace and how much to fit in.",
+      required: false,
+      answer_type: "single_choice",
+      options: [
+        { id: "duration-1", label: "1-2 days", value: "1-2 days" },
+        { id: "duration-2", label: "3-4 days", value: "3-4 days" },
+        { id: "duration-3", label: "5-7 days", value: "5-7 days" },
+        { id: "duration-4", label: "1+ weeks", value: "1+ weeks" },
+      ],
+      allow_free_text: true,
+      allow_skip: true,
+    },
+    {
+      id: "travel_style",
+      prompt: "What's your main travel style?",
+      required: false,
+      answer_type: "single_choice",
+      options: [
+        { id: "travel-style-1", label: "Cultural & sightseeing", value: "culture" },
+        { id: "travel-style-2", label: "Food & local experiences", value: "food" },
+        { id: "travel-style-3", label: "Relaxation & photography", value: "relaxed" },
+        { id: "travel-style-4", label: "Mixed experience", value: "mixed" },
+      ],
+      allow_free_text: true,
+      allow_skip: true,
+    },
+    {
+      id: "timing",
+      prompt: "When are you thinking of going?",
+      required: false,
+      answer_type: "single_choice",
+      options: [
+        { id: "timing-1", label: "Summer (peak season)", value: "summer" },
+        { id: "timing-2", label: "Spring/Fall (shoulder)", value: "shoulder" },
+        { id: "timing-3", label: "Winter (quiet)", value: "winter" },
+        { id: "timing-4", label: "No preference yet", value: "no preference" },
+      ],
+      allow_free_text: true,
+      allow_skip: true,
+    },
+  ],
+  answers: {},
+};
+
+export const hotelClarificationParis: TripClarification = {
+  session_id: "clarify-book-hotel-paris",
+  intent: "book_hotel",
+  destination: "Paris",
+  current_index: 0,
+  total_questions: 3,
+  known_fields: { destination: "Paris" },
+  questions: [
+    {
+      id: "hotel_dates",
+      prompt: "When do you need the hotel?",
+      reason: "Dates or nights determine availability and realistic pricing.",
+      required: false,
+      answer_type: "single_choice",
+      options: [
+        { id: "hotel-dates-1", label: "I know exact dates", value: "exact dates" },
+        { id: "hotel-dates-2", label: "A weekend", value: "weekend" },
+        { id: "hotel-dates-3", label: "3-4 nights", value: "3-4 nights" },
+        { id: "hotel-dates-4", label: "Still flexible", value: "flexible" },
+      ],
+      allow_free_text: true,
+      allow_skip: true,
+    },
+    {
+      id: "hotel_area",
+      prompt: "Which area would you prefer?",
+      required: false,
+      answer_type: "single_choice",
+      options: [
+        { id: "hotel-area-1", label: "Central and walkable", value: "central" },
+        { id: "hotel-area-2", label: "Quiet residential", value: "quiet" },
+        { id: "hotel-area-3", label: "Near nightlife/restaurants", value: "nightlife" },
+        { id: "hotel-area-4", label: "Best value area", value: "value" },
+      ],
+      allow_free_text: true,
+      allow_skip: true,
+    },
+    {
+      id: "hotel_budget",
+      prompt: "What's a comfortable nightly budget?",
+      required: false,
+      answer_type: "single_choice",
+      options: [
+        { id: "hotel-budget-1", label: "Under EUR 120/night", value: "under 120" },
+        { id: "hotel-budget-2", label: "EUR 120-220/night", value: "120-220" },
+        { id: "hotel-budget-3", label: "EUR 220-350/night", value: "220-350" },
+        { id: "hotel-budget-4", label: "Flexible for the right place", value: "flexible" },
+      ],
+      allow_free_text: true,
+      allow_skip: true,
+    },
+  ],
+  answers: {},
 };
 
 export const errorOutput: ErrorOutput = {

@@ -38,6 +38,9 @@ interface OpenAI {
   _meta: Record<string, any>;
   setWidgetState: (nextState: Record<string, any> | ((prev: Record<string, any>) => Record<string, any>)) => Promise<Record<string, any>>;
   setOpenInAppUrl: (value: string) => Promise<string>;
+  callTool: (name: string, input: Record<string, any>) => Promise<Record<string, any>>;
+  sendFollowUpMessage: (message: string) => Promise<void>;
+  requestClose: () => Promise<void>;
 }
 
 declare global {
@@ -94,6 +97,29 @@ const installOpenAiHost = (
       hostState.openInAppUrl = value;
       openai.openInAppUrl = value;
       return Promise.resolve(value);
+    },
+    callTool(name, input) {
+      const summary = name === "submit_trip_clarification"
+        ? "Storybook captured the trip clarification answers."
+        : `Storybook called ${name}.`;
+      return Promise.resolve({
+        structuredContent: {
+          result: summary,
+          tool: name,
+          input,
+        },
+        result: summary,
+        content: [{ type: "text", text: summary }],
+        _meta: { "openai/closeWidget": name === "submit_trip_clarification" },
+      });
+    },
+    sendFollowUpMessage(message) {
+      console.info("Storybook follow-up message:", message);
+      return Promise.resolve();
+    },
+    requestClose() {
+      console.info("Storybook widget close requested");
+      return Promise.resolve();
     },
   };
 

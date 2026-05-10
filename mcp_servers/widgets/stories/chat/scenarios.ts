@@ -1,4 +1,5 @@
 import {
+  tripClarificationVenice,
   tripBoardAmsterdam,
   tripBudgetAmsterdam,
   tripItineraryAmsterdam,
@@ -81,6 +82,33 @@ export const tripPlanningScenario: ChatScenario = {
   ],
 };
 
+export const tripClarificationScenario: ChatScenario = {
+  id: 'trip-clarification',
+  title: 'Trip clarification',
+  turns: [
+    {
+      role: 'user',
+      text: 'I want to plan a trip to Venice.',
+    },
+    {
+      role: 'assistant',
+      text: 'I need a few details before creating the workspace.',
+    },
+    {
+      role: 'tool',
+      label: 'ask_trip_clarification',
+      status: 'Questions ready',
+      widget: {
+        url: '/trip_clarification_v1.html',
+        height: '360px',
+        toolInput: { utterance: 'I want to plan a trip to Venice' },
+        toolOutput: tripClarificationVenice,
+      },
+    },
+  ],
+};
+
 export const chatScenarios: Record<string, ChatScenario> = {
   [tripPlanningScenario.id]: tripPlanningScenario,
+  [tripClarificationScenario.id]: tripClarificationScenario,
 };

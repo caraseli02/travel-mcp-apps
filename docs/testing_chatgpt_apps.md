@@ -24,6 +24,8 @@ Current widget resources:
 | Travel agent | `8104` | `render_trip_board` | `ui://trip/board-v2.html` |
 | Travel agent | `8104` | `get_trip_itinerary` | `ui://trip/itinerary-v1.html` |
 | Travel agent | `8104` | `get_trip_budget` | `ui://trip/budget-v1.html` |
+| Travel agent | `8104` | `ask_trip_clarification` | `ui://trip/clarification-v1.html` |
+| Travel agent | `8104` | `render_trip_clarification` | `ui://trip/clarification-v1.html` |
 
 The FastAPI app also mounts the unified travel-agent MCP endpoint at
 `/mcp/travel-agent/`. Prefer that endpoint for ChatGPT Developer Mode when
@@ -126,6 +128,8 @@ widget renders real tool output in ChatGPT Developer Mode:
 - `render_trip_board` renders `ui://trip/board-v2.html`.
 - `get_trip_itinerary` renders `ui://trip/itinerary-v1.html`.
 - `get_trip_budget` renders `ui://trip/budget-v1.html`.
+- `ask_trip_clarification` opens `ui://trip/clarification-v1.html` for simple vague trip, hotel, and flight requests.
+- `submit_trip_clarification` returns `_meta["openai/closeWidget"] = true` so transient question widgets can close after successful submit.
 
 ## ChatGPT Developer Mode Path
 
@@ -190,6 +194,9 @@ Recommended local steps:
 5. Ask ChatGPT to call one of the target tools:
 
    ```text
+   I want to plan a trip to Venice.
+   I want to book hotel in Paris.
+   I want to book fly to Tokyo.
    Create a Tokyo trip, save this hotel option, then show my trip inbox.
    Move the saved hotel to shortlisted, fetch the trip board, and show the visual trip board.
    Add a Day 1 morning museum visit to the trip, move it to shortlisted, then show my day-by-day itinerary.
@@ -213,6 +220,8 @@ Required environment:
 MVP Developer Mode script:
 
 ```text
+I want to plan a trip to Venice.
+Answer the clarification questions in the widget and confirm ChatGPT continues from those answers.
 Create a Tokyo trip.
 Save this hotel option to the Tokyo trip: Booking.com hotel near Shibuya, about $180/night.
 Show my trip inbox.
