@@ -33,6 +33,9 @@ from services.trips import (
 
 WIDGETS_DIR = Path(__file__).resolve().parent / "widgets"
 _STORE: PostgresTripStore | FileTripStore | None = None
+MAX_JSON_PAYLOAD_CHARS = 12_000
+MAX_JSON_OBJECT_KEYS = 64
+MAX_JSON_DEPTH = 8
 
 
 def local_transport_security() -> TransportSecuritySettings | None:
@@ -408,6 +411,11 @@ def get_trip_summary(trip_id: str) -> CallToolResult:
 
 
 def _parse_json_object(value: str, field_name: str) -> dict[str, Any]:
+    if len(value or "") > MAX_JSON_PAYLOAD_CHARS:
+        raise TripValidationError(
+            f"{field_name} may be at most {MAX_JSON_PAYLOAD_CHARS} characters."
+        )
+
     try:
         parsed = json.loads(value or "{}")
     except json.JSONDecodeError as exc:
@@ -415,7 +423,27 @@ def _parse_json_object(value: str, field_name: str) -> dict[str, Any]:
 
     if not isinstance(parsed, dict):
         raise TripValidationError(f"{field_name} must be a JSON object.")
+    _validate_json_shape(parsed, field_name)
     return parsed
+
+
+def _validate_json_shape(value: Any, field_name: str, depth: int = 0) -> None:
+    if depth > MAX_JSON_DEPTH:
+        raise TripValidationError(f"{field_name} may be nested at most {MAX_JSON_DEPTH} levels.")
+    if isinstance(value, dict):
+        if len(value) > MAX_JSON_OBJECT_KEYS:
+            raise TripValidationError(
+                f"{field_name} may include at most {MAX_JSON_OBJECT_KEYS} object keys."
+            )
+        for child in value.values():
+            _validate_json_shape(child, field_name, depth + 1)
+    elif isinstance(value, list):
+        if len(value) > MAX_JSON_OBJECT_KEYS:
+            raise TripValidationError(
+                f"{field_name} may include at most {MAX_JSON_OBJECT_KEYS} array values."
+            )
+        for child in value:
+            _validate_json_shape(child, field_name, depth + 1)
 
 
 def _build_clarification_session_from_tool_input(
@@ -436,14 +464,14 @@ def _build_clarification_session_from_tool_input(
 
     store = get_trip_store()
     trip = store.get_trip(trip_id)
-    items = store.list_items(trip_id)
+    item_type_counts = store.item_type_counts(trip_id)
     return build_clarification_session(
         utterance=utterance,
         intent=intent,
         destination=destination,
         known_fields=known_fields,
         trip=trip,
-        items=items,
+        item_type_counts=item_type_counts,
     )
 
 
@@ -563,14 +591,35 @@ def render_trip_clarification(
     description=(
         "Use this after the user answers trip clarification questions. It summarizes "
         "selected answers and recommends whether to create a trip, save hotel "
-        "constraints, save flight constraints, or ask a text follow-up."
+        "constraints, save flight constraints, or ask a text follow-up. Widgets can "
+        "submit session_json. Direct model callers can omit session_json and pass "
+        "utterance, intent, destination, trip_id, and known_fields_json instead."
     ),
     annotations=MUTATION,
     meta=_status_meta("Saving trip answers", "Saved trip answers"),
 )
-def submit_trip_clarification(session_json: str, answers_json: str) -> CallToolResult:
+def submit_trip_clarification(
+    answers_json: str,
+    session_json: str = "",
+    utterance: str | None = None,
+    intent: str | None = None,
+    destination: str | None = None,
+    trip_id: str | None = None,
+    known_fields_json: str = "{}",
+) -> CallToolResult:
     def action() -> CallToolResult:
-        session = _parse_json_object(session_json, "session_json")
+        if session_json.strip():
+            session = _parse_json_object(session_json, "session_json")
+        else:
+            if not utterance or not utterance.strip():
+                raise TripValidationError("utterance is required when session_json is not provided.")
+            session = _build_clarification_session_from_tool_input(
+                utterance=utterance,
+                intent=intent,
+                destination=destination,
+                trip_id=trip_id,
+                known_fields_json=known_fields_json,
+            )
         answers = _parse_json_object(answers_json, "answers_json")
         result = summarize_clarification(session, answers)
         return CallToolResult(

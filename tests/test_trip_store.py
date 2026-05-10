@@ -72,6 +72,16 @@ def test_store_creates_trip_and_dedupes_items_by_normalized_raw_content() -> Non
     assert store.list_items(trip.id, "inbox") == [first]
 
 
+def test_store_counts_item_types_without_materializing_board_data() -> None:
+    store = InMemoryTripStore()
+    trip = store.create_trip("Tokyo", destination="Tokyo")
+    store.add_item(trip.id, "Hotel option near Shibuya")
+    store.add_item(trip.id, "Flight BCN to Tokyo")
+    store.add_item(trip.id, "Train to Kyoto")
+
+    assert store.item_type_counts(trip.id) == {"hotel": 1, "flight": 1, "transport": 1}
+
+
 def test_file_store_persists_trip_items_across_store_instances(tmp_path) -> None:
     path = tmp_path / "trips.json"
     store = FileTripStore(str(path))

@@ -1,20 +1,24 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass
 import re
 from typing import Any, Literal
 
-from services.trips import Trip, TripItem
+from services.trips import Trip, TripValidationError
 
 ClarificationIntent = Literal["plan_trip", "book_hotel", "book_flight"]
 AnswerType = Literal["single_choice", "multi_choice", "free_text"]
 NextAction = Literal[
     "create_trip",
-    "save_constraints",
     "save_hotel_request",
     "save_flight_request",
     "ask_followup_text",
 ]
+
+MAX_QUESTIONS = 5
+MAX_OPTIONS_PER_QUESTION = 8
+MAX_ANSWER_LENGTH = 280
+MAX_ANSWER_LIST_LENGTH = 8
 
 
 @dataclass(frozen=True)
@@ -56,22 +60,28 @@ def build_clarification_session(
     destination: str | None = None,
     known_fields: dict[str, Any] | None = None,
     trip: Trip | None = None,
-    items: list[TripItem] | None = None,
+    item_type_counts: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     normalized_intent = normalize_intent(intent, utterance)
-    resolved_destination = clean(destination) or trip.destination if trip else clean(destination)
+    resolved_destination = clean(destination) or (trip.destination if trip else None)
     resolved_destination = resolved_destination or infer_destination(utterance)
+    derived_fields = compact_record(
+        {
+            "destination": resolved_destination,
+            "trip_id": trip.id if trip else None,
+            "start_date": trip.start_date if trip else None,
+            "end_date": trip.end_date if trip else None,
+            "has_hotel": has_item_type(item_type_counts, {"hotel"}) or None,
+            "has_transport": has_item_type(item_type_counts, {"flight", "transport"}) or None,
+        }
+    )
     resolved_known_fields = compact_record(
         {
             **(known_fields or {}),
-            "destination": resolved_destination,
-            "start_date": trip.start_date if trip else None,
-            "end_date": trip.end_date if trip else None,
-            "has_hotel": any(item.item_type == "hotel" for item in items or []) or None,
-            "has_transport": any(item.item_type in {"flight", "transport"} for item in items or []) or None,
+            **derived_fields,
         }
     )
-    questions = questions_for(normalized_intent, resolved_known_fields)[:5]
+    questions = questions_for(normalized_intent, resolved_known_fields)[:MAX_QUESTIONS]
     session = ClarificationSession(
         session_id=f"clarify-{normalized_intent}-{slug(resolved_destination or 'trip')}",
         intent=normalized_intent,
@@ -86,18 +96,20 @@ def build_clarification_session(
 
 
 def summarize_clarification(session: dict[str, Any], answers: dict[str, Any]) -> dict[str, Any]:
+    validate_session(session)
+    validate_answers(answers)
+    validate_session_matches_generated_questions(session)
     questions = session.get("questions")
-    if not isinstance(questions, list):
-        raise ValueError("session_json must include a questions array.")
+    question_ids = {question["id"] for question in questions}
+    if any(question_id not in question_ids for question_id in answers):
+        raise TripValidationError("answers_json includes answers for unknown questions.")
 
     resolved_fields: dict[str, Any] = {}
     remaining_fields: list[str] = []
     for question in questions:
-        if not isinstance(question, dict) or not isinstance(question.get("id"), str):
-            raise ValueError("session_json questions must contain ids.")
-
         question_id = question["id"]
         answer = answers.get(question_id)
+        validate_answer_for_question(question, answer)
         if is_empty_answer(answer):
             if question.get("required") is True:
                 remaining_fields.append(question_id)
@@ -113,6 +125,9 @@ def summarize_clarification(session: dict[str, Any], answers: dict[str, Any]) ->
         "resolved_fields": resolved_fields,
         "remaining_fields": remaining_fields,
         "recommended_next_action": recommended_next_action,
+        "trip_draft": trip_draft(hydrated_session),
+        "trip_item_draft": trip_item_draft(hydrated_session, resolved_fields),
+        "next_tool_calls": next_tool_calls(hydrated_session, resolved_fields, recommended_next_action),
         "summary": answer_summary(hydrated_session, resolved_fields, remaining_fields),
     }
 
@@ -281,7 +296,7 @@ def flight_questions(known_fields: dict[str, Any]) -> list[ClarificationQuestion
 
 
 def session_to_dict(session: ClarificationSession) -> dict[str, Any]:
-    return asdict(replace(session, questions=session.questions))
+    return asdict(session)
 
 
 def normalize_intent(intent: str | None, utterance: str) -> ClarificationIntent:
@@ -298,7 +313,10 @@ def normalize_intent(intent: str | None, utterance: str) -> ClarificationIntent:
 
 
 def infer_destination(utterance: str) -> str | None:
-    match = re.search(r"\b(?:to|in|for)\s+([A-Z][\wÀ-ÿ.' -]{1,60})", utterance)
+    match = re.search(
+        r"\b(?:to|in|for)\s+([A-Z][\wÀ-ÿ.' -]{1,60}?)(?=\s+(?:for|from|on|with|between|during|near|under|around)\b|[.!?]|$)",
+        utterance,
+    )
     if not match:
         return None
     return clean(re.sub(r"[.!?]+$", "", match.group(1)))
@@ -334,6 +352,63 @@ def next_action(intent: ClarificationIntent, remaining_fields: list[str]) -> Nex
     return "create_trip"
 
 
+def trip_draft(session: dict[str, Any]) -> dict[str, Any] | None:
+    destination = session.get("destination") if isinstance(session.get("destination"), str) else None
+    known_fields = session.get("known_fields") if isinstance(session.get("known_fields"), dict) else {}
+    if session.get("intent") != "plan_trip" and known_fields.get("trip_id"):
+        return None
+
+    title = f"{destination} trip" if destination else "Trip workspace"
+    return {
+        "title": title,
+        "destination": destination,
+        "start_date": string_or_none(known_fields.get("start_date")),
+        "end_date": string_or_none(known_fields.get("end_date")),
+    }
+
+
+def trip_item_draft(session: dict[str, Any], resolved_fields: dict[str, Any]) -> dict[str, Any] | None:
+    intent = session.get("intent")
+    if intent not in {"book_hotel", "book_flight"}:
+        return None
+
+    destination = session.get("destination") if isinstance(session.get("destination"), str) else None
+    item_type = "hotel" if intent == "book_hotel" else "flight"
+    title = f"{destination} {item_type} request" if destination else f"{item_type.title()} request"
+    return {
+        "trip_id": string_or_none((session.get("known_fields") or {}).get("trip_id")) if isinstance(session.get("known_fields"), dict) else None,
+        "raw_content": answer_summary(session, resolved_fields, []),
+        "item_type": item_type,
+        "source_label": "Trip clarification",
+        "title": title,
+        "notes": "; ".join(
+            f"{key}: {', '.join(value) if isinstance(value, list) else value}"
+            for key, value in resolved_fields.items()
+        ),
+    }
+
+
+def next_tool_calls(
+    session: dict[str, Any],
+    resolved_fields: dict[str, Any],
+    recommended_next_action: NextAction,
+) -> list[dict[str, Any]]:
+    calls: list[dict[str, Any]] = []
+    if recommended_next_action == "create_trip":
+        draft = trip_draft(session)
+        if draft:
+            calls.append({"name": "create_trip", "arguments": draft})
+    elif recommended_next_action in {"save_hotel_request", "save_flight_request"}:
+        draft = trip_item_draft(session, resolved_fields)
+        if draft and draft.get("trip_id"):
+            calls.append({"name": "add_trip_item", "arguments": draft})
+        elif draft:
+            trip = trip_draft(session)
+            if trip:
+                calls.append({"name": "create_trip", "arguments": trip})
+    return calls
+
+
 def answer_summary(
     session: dict[str, Any],
     resolved_fields: dict[str, Any],
@@ -357,9 +432,97 @@ def clean(value: str | None) -> str | None:
     return stripped or None
 
 
+def string_or_none(value: Any) -> str | None:
+    return value if isinstance(value, str) and value else None
+
+
 def slug(value: str) -> str:
     return re.sub(r"^-|-$", "", re.sub(r"[^a-z0-9]+", "-", value.lower())) or "trip"
 
 
 def is_empty_answer(value: Any) -> bool:
     return value is None or value == "" or value == "skipped" or value == []
+
+
+def has_item_type(item_type_counts: dict[str, int] | None, item_types: set[str]) -> bool:
+    if not item_type_counts:
+        return False
+    return any(item_type_counts.get(item_type, 0) > 0 for item_type in item_types)
+
+
+def validate_session(session: dict[str, Any]) -> None:
+    questions = session.get("questions")
+    if not isinstance(questions, list):
+        raise TripValidationError("session_json must include a questions array.")
+    if len(questions) > MAX_QUESTIONS:
+        raise TripValidationError(f"session_json may include at most {MAX_QUESTIONS} questions.")
+    if session.get("intent") not in {"plan_trip", "book_hotel", "book_flight"}:
+        raise TripValidationError("session_json intent is invalid.")
+
+    for question in questions:
+        if not isinstance(question, dict) or not isinstance(question.get("id"), str):
+            raise TripValidationError("session_json questions must contain ids.")
+        if not isinstance(question.get("prompt"), str):
+            raise TripValidationError("session_json questions must contain prompts.")
+        if question.get("required") not in {True, False}:
+            raise TripValidationError("session_json question required values must be booleans.")
+        if question.get("answer_type") not in {"single_choice", "multi_choice", "free_text"}:
+            raise TripValidationError("session_json question answer_type is invalid.")
+        if question.get("allow_free_text") not in {True, False}:
+            raise TripValidationError("session_json question allow_free_text values must be booleans.")
+        if question.get("allow_skip") not in {True, False}:
+            raise TripValidationError("session_json question allow_skip values must be booleans.")
+        options_value = question.get("options")
+        if not isinstance(options_value, list):
+            raise TripValidationError("session_json question options must be arrays.")
+        if len(options_value) > MAX_OPTIONS_PER_QUESTION:
+            raise TripValidationError(f"session_json questions may include at most {MAX_OPTIONS_PER_QUESTION} options.")
+        for option in options_value:
+            if not isinstance(option, dict) or not isinstance(option.get("value"), str):
+                raise TripValidationError("session_json question options must contain string values.")
+
+
+def validate_session_matches_generated_questions(session: dict[str, Any]) -> None:
+    intent = normalize_intent(session.get("intent") if isinstance(session.get("intent"), str) else None, "")
+    known_fields = session.get("known_fields") if isinstance(session.get("known_fields"), dict) else {}
+    expected = [asdict(question) for question in questions_for(intent, known_fields)[:MAX_QUESTIONS]]
+    actual = session.get("questions")
+    if actual != expected:
+        raise TripValidationError("session_json questions do not match the generated clarification session.")
+
+
+def validate_answers(answers: dict[str, Any]) -> None:
+    if len(answers) > MAX_QUESTIONS:
+        raise TripValidationError(f"answers_json may include at most {MAX_QUESTIONS} answers.")
+    for value in answers.values():
+        validate_answer_value(value)
+
+
+def validate_answer_value(value: Any) -> None:
+    if is_empty_answer(value):
+        return
+    if isinstance(value, str):
+        if len(value) > MAX_ANSWER_LENGTH:
+            raise TripValidationError(f"answers may be at most {MAX_ANSWER_LENGTH} characters.")
+        return
+    if isinstance(value, list):
+        if len(value) > MAX_ANSWER_LIST_LENGTH:
+            raise TripValidationError(f"answer lists may include at most {MAX_ANSWER_LIST_LENGTH} values.")
+        for item in value:
+            if not isinstance(item, str) or len(item) > MAX_ANSWER_LENGTH:
+                raise TripValidationError(f"answer list values may be at most {MAX_ANSWER_LENGTH} characters.")
+        return
+    raise TripValidationError("answers must be strings, string arrays, skipped, or empty.")
+
+
+def validate_answer_for_question(question: dict[str, Any], answer: Any) -> None:
+    if is_empty_answer(answer) or question.get("allow_free_text") is True:
+        return
+    allowed = {
+        option["value"]
+        for option in question.get("options", [])
+        if isinstance(option, dict) and isinstance(option.get("value"), str)
+    }
+    values = answer if isinstance(answer, list) else [answer]
+    if any(value not in allowed for value in values):
+        raise TripValidationError("answers_json includes a value that is not allowed for the question.")

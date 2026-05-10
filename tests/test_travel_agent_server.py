@@ -206,6 +206,7 @@ def test_prepare_trip_clarification_returns_intent_specific_questions(
 
 
 def test_trip_clarification_omits_known_fields_and_existing_trip_state(
+    monkeypatch: pytest.MonkeyPatch,
     trip_store: InMemoryTripStore,
 ) -> None:
     trip = trip_store.create_trip(
@@ -215,6 +216,11 @@ def test_trip_clarification_omits_known_fields_and_existing_trip_state(
         end_date="2026-06-04",
     )
     trip_store.add_item(trip.id, "Hotel Ala confirmed", item_type="hotel", title="Hotel Ala")
+
+    def fail_list_items(*_args, **_kwargs):
+        raise AssertionError("prepare_trip_clarification should use aggregate item counts")
+
+    monkeypatch.setattr(trip_store, "list_items", fail_list_items)
 
     result = travel_agent_server.prepare_trip_clarification(
         utterance="I want to plan a trip to Venice",
@@ -226,6 +232,23 @@ def test_trip_clarification_omits_known_fields_and_existing_trip_state(
 
     assert result.structuredContent["destination"] == "Venice"
     assert result.structuredContent["known_fields"]["has_hotel"] is True
+    assert result.structuredContent["known_fields"]["travel_style"] == "food"
+    assert "duration" not in question_ids
+    assert "travel_style" not in question_ids
+
+
+def test_trip_clarification_preserves_known_fields_without_trip(
+    trip_store: InMemoryTripStore,
+) -> None:
+    result = travel_agent_server.prepare_trip_clarification(
+        utterance="I want to plan a trip to Lisbon",
+        intent="plan_trip",
+        known_fields_json=json.dumps({"start_date": "2026-06-01", "travel_style": "food"}),
+    )
+    question_ids = [question["id"] for question in result.structuredContent["questions"]]
+
+    assert result.structuredContent["destination"] == "Lisbon"
+    assert result.structuredContent["known_fields"]["start_date"] == "2026-06-01"
     assert result.structuredContent["known_fields"]["travel_style"] == "food"
     assert "duration" not in question_ids
     assert "travel_style" not in question_ids
@@ -259,7 +282,41 @@ def test_render_and_submit_trip_clarification(trip_store: InMemoryTripStore) -> 
         "hotel_budget": "120-220",
     }
     assert submitted.structuredContent["remaining_fields"] == []
+    assert submitted.structuredContent["trip_draft"] == {
+        "title": "Paris trip",
+        "destination": "Paris",
+        "start_date": None,
+        "end_date": None,
+    }
+    assert submitted.structuredContent["trip_item_draft"]["item_type"] == "hotel"
+    assert submitted.structuredContent["next_tool_calls"] == [
+        {
+            "name": "create_trip",
+            "arguments": {
+                "title": "Paris trip",
+                "destination": "Paris",
+                "start_date": None,
+                "end_date": None,
+            },
+        }
+    ]
     assert submitted.meta == {"openai/closeWidget": True}
+
+
+def test_submit_trip_clarification_accepts_direct_tool_inputs(
+    trip_store: InMemoryTripStore,
+) -> None:
+    result = travel_agent_server.submit_trip_clarification(
+        utterance="I want to plan a trip to Porto",
+        intent="plan_trip",
+        known_fields_json=json.dumps({"start_date": "2026-07-01"}),
+        answers_json=json.dumps({"travel_style": "food"}),
+    )
+
+    assert result.isError is not True
+    assert result.structuredContent["recommended_next_action"] == "create_trip"
+    assert result.structuredContent["next_tool_calls"][0]["name"] == "create_trip"
+    assert result.structuredContent["next_tool_calls"][0]["arguments"]["destination"] == "Porto"
 
 
 def test_submit_trip_clarification_rejects_invalid_payload(
@@ -272,6 +329,60 @@ def test_submit_trip_clarification_rejects_invalid_payload(
 
     assert result.isError is True
     assert result.structuredContent == {"error": "session_json must be a JSON object."}
+
+
+def test_submit_trip_clarification_rejects_tampered_session(
+    trip_store: InMemoryTripStore,
+) -> None:
+    rendered = travel_agent_server.render_trip_clarification(
+        utterance="I want to book hotel in Paris",
+        known_fields_json="{}",
+    )
+    session = rendered.structuredContent
+    session["questions"][0]["required"] = True
+
+    result = travel_agent_server.submit_trip_clarification(
+        session_json=json.dumps(session),
+        answers_json=json.dumps({"hotel_dates": "3-4 nights"}),
+    )
+
+    assert result.isError is True
+    assert result.structuredContent == {
+        "error": "session_json questions do not match the generated clarification session."
+    }
+
+
+def test_submit_trip_clarification_rejects_unknown_answer_ids(
+    trip_store: InMemoryTripStore,
+) -> None:
+    rendered = travel_agent_server.render_trip_clarification(
+        utterance="I want to plan a trip to Porto",
+        known_fields_json="{}",
+    )
+
+    result = travel_agent_server.submit_trip_clarification(
+        session_json=json.dumps(rendered.structuredContent),
+        answers_json=json.dumps({"duration": "3-4 days", "fake": "value"}),
+    )
+
+    assert result.isError is True
+    assert result.structuredContent == {
+        "error": "answers_json includes answers for unknown questions."
+    }
+
+
+def test_submit_trip_clarification_rejects_oversized_json(
+    trip_store: InMemoryTripStore,
+) -> None:
+    result = travel_agent_server.submit_trip_clarification(
+        session_json="{}",
+        answers_json=json.dumps({"answer": "x" * 13_000}),
+    )
+
+    assert result.isError is True
+    assert result.structuredContent == {
+        "error": "answers_json may be at most 12000 characters."
+    }
 
 
 def test_tool_returns_clear_error_when_database_url_missing(monkeypatch: pytest.MonkeyPatch) -> None:
