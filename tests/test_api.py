@@ -45,6 +45,10 @@ async def test_mounted_mcp_servers_list_tools() -> None:
                 "get_trip_itinerary",
                 "get_trip_budget",
                 "get_trip_summary",
+                "prepare_trip_clarification",
+                "ask_trip_clarification",
+                "render_trip_clarification",
+                "submit_trip_clarification",
             },
         ),
     ]
@@ -88,6 +92,22 @@ async def test_mounted_mcp_servers_list_tools() -> None:
                     assert tools["add_trip_item"].annotations.idempotentHint is True
                     assert tools["add_trip_item"].annotations.destructiveHint is False
                     assert "openai/outputTemplate" not in (tools["add_trip_item"].meta or {})
+
+                    assert "openai/outputTemplate" not in (
+                        tools["prepare_trip_clarification"].meta or {}
+                    )
+                    assert tools["ask_trip_clarification"].meta == {
+                        "ui": {"resourceUri": "ui://trip/clarification-v1.html"},
+                        "openai/outputTemplate": "ui://trip/clarification-v1.html",
+                        "openai/toolInvocation/invoking": "Opening trip questions",
+                        "openai/toolInvocation/invoked": "Opened trip questions",
+                    }
+                    assert tools["render_trip_clarification"].meta == {
+                        "ui": {"resourceUri": "ui://trip/clarification-v1.html"},
+                        "openai/outputTemplate": "ui://trip/clarification-v1.html",
+                        "openai/toolInvocation/invoking": "Opening trip questions",
+                        "openai/toolInvocation/invoked": "Opened trip questions",
+                    }
 
 
 def test_travel_plan_placeholder() -> None:

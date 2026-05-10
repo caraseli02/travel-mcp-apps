@@ -1,7 +1,8 @@
 from pathlib import Path
+import json
 import os
 import sys
-from typing import Callable
+from typing import Any, Callable
 
 if __package__ is None or __package__ == "":
     sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -11,6 +12,10 @@ from mcp.server.transport_security import TransportSecuritySettings
 from mcp.types import CallToolResult, TextContent, ToolAnnotations
 
 from app.config import get_settings
+from services.trip_clarification import (
+    build_clarification_session,
+    summarize_clarification,
+)
 from services.trips import (
     FileTripStore,
     PostgresTripStore,
@@ -116,7 +121,11 @@ def _render_meta(resource_uri: str, invoking: str, invoked: str) -> dict[str, ob
     title="Create trip workspace",
     description=(
         "Use this when the user wants a saved trip workspace for collecting options, "
-        "decisions, itinerary items, and budget notes."
+        "decisions, itinerary items, and budget notes. Use this only after the user "
+        "has confirmed they want a saved trip workspace or after clarification "
+        "answers are collected. Do not use this as the first action for vague "
+        "requests like 'I want to plan a trip to X', 'I want to book hotel in X', "
+        "or 'I want to book fly to X'; use ask_trip_clarification for those first."
     ),
     annotations=MUTATION,
     meta=_status_meta("Creating trip workspace", "Created trip workspace"),
@@ -398,6 +407,181 @@ def get_trip_summary(trip_id: str) -> CallToolResult:
     return _run_trip_tool(action)
 
 
+def _parse_json_object(value: str, field_name: str) -> dict[str, Any]:
+    try:
+        parsed = json.loads(value or "{}")
+    except json.JSONDecodeError as exc:
+        raise TripValidationError(f"{field_name} must be valid JSON.") from exc
+
+    if not isinstance(parsed, dict):
+        raise TripValidationError(f"{field_name} must be a JSON object.")
+    return parsed
+
+
+def _build_clarification_session_from_tool_input(
+    utterance: str,
+    intent: str | None = None,
+    destination: str | None = None,
+    trip_id: str | None = None,
+    known_fields_json: str = "{}",
+) -> dict[str, Any]:
+    known_fields = _parse_json_object(known_fields_json, "known_fields_json")
+    if not trip_id:
+        return build_clarification_session(
+            utterance=utterance,
+            intent=intent,
+            destination=destination,
+            known_fields=known_fields,
+        )
+
+    store = get_trip_store()
+    trip = store.get_trip(trip_id)
+    items = store.list_items(trip_id)
+    return build_clarification_session(
+        utterance=utterance,
+        intent=intent,
+        destination=destination,
+        known_fields=known_fields,
+        trip=trip,
+        items=items,
+    )
+
+
+@server.tool(
+    name="prepare_trip_clarification",
+    title="Prepare trip clarification questions",
+    description=(
+        "Use this when the user gives an underspecified travel request such as "
+        "planning a trip, booking a hotel, or booking a flight and a few structured "
+        "follow-up questions would help. Returns reusable structured question data "
+        "without rendering UI."
+    ),
+    annotations=READ_ONLY,
+    meta=_status_meta("Preparing trip questions", "Prepared trip questions"),
+)
+def prepare_trip_clarification(
+    utterance: str,
+    intent: str | None = None,
+    destination: str | None = None,
+    trip_id: str | None = None,
+    known_fields_json: str = "{}",
+) -> CallToolResult:
+    def action() -> CallToolResult:
+        session = _build_clarification_session_from_tool_input(
+            utterance=utterance,
+            intent=intent,
+            destination=destination,
+            trip_id=trip_id,
+            known_fields_json=known_fields_json,
+        )
+        return CallToolResult(
+            structuredContent=session,
+            content=_text(f"Prepared {session['total_questions']} clarification question(s)."),
+            _meta={},
+        )
+
+    return _run_trip_tool(action)
+
+
+@server.tool(
+    name="ask_trip_clarification",
+    title="Ask trip clarification questions",
+    description=(
+        "Use this as the first action for simple underspecified travel requests: "
+        "'I want to plan a trip to X', 'I want to book hotel in X', or "
+        "'I want to book fly to X'. This renders the interactive question widget "
+        "instead of creating a trip immediately."
+    ),
+    annotations=READ_ONLY,
+    meta=_render_meta(
+        "ui://trip/clarification-v1.html",
+        "Opening trip questions",
+        "Opened trip questions",
+    ),
+)
+def ask_trip_clarification(
+    utterance: str,
+    intent: str | None = None,
+    destination: str | None = None,
+    trip_id: str | None = None,
+    known_fields_json: str = "{}",
+) -> CallToolResult:
+    return render_trip_clarification(
+        utterance=utterance,
+        intent=intent,
+        destination=destination,
+        trip_id=trip_id,
+        known_fields_json=known_fields_json,
+    )
+
+
+@server.tool(
+    name="render_trip_clarification",
+    title="Render trip clarification widget",
+    description=(
+        "Use this to render the compact interactive clarification widget when "
+        "question data should be shown visually. For first-turn simple travel "
+        "requests, prefer ask_trip_clarification."
+    ),
+    annotations=READ_ONLY,
+    meta=_render_meta(
+        "ui://trip/clarification-v1.html",
+        "Opening trip questions",
+        "Opened trip questions",
+    ),
+)
+def render_trip_clarification(
+    utterance: str,
+    intent: str | None = None,
+    destination: str | None = None,
+    trip_id: str | None = None,
+    known_fields_json: str = "{}",
+) -> CallToolResult:
+    def action() -> CallToolResult:
+        session = _build_clarification_session_from_tool_input(
+            utterance=utterance,
+            intent=intent,
+            destination=destination,
+            trip_id=trip_id,
+            known_fields_json=known_fields_json,
+        )
+        return CallToolResult(
+            structuredContent=session,
+            content=_text(
+                f"Opened {session['total_questions']} clarification question(s) "
+                f"for {session['destination'] or 'the trip'}."
+            ),
+            _meta={},
+        )
+
+    return _run_trip_tool(action)
+
+
+@server.tool(
+    name="submit_trip_clarification",
+    title="Submit trip clarification answers",
+    description=(
+        "Use this after the user answers trip clarification questions. It summarizes "
+        "selected answers and recommends whether to create a trip, save hotel "
+        "constraints, save flight constraints, or ask a text follow-up."
+    ),
+    annotations=MUTATION,
+    meta=_status_meta("Saving trip answers", "Saved trip answers"),
+)
+def submit_trip_clarification(session_json: str, answers_json: str) -> CallToolResult:
+    def action() -> CallToolResult:
+        session = _parse_json_object(session_json, "session_json")
+        answers = _parse_json_object(answers_json, "answers_json")
+        result = summarize_clarification(session, answers)
+        return CallToolResult(
+            structuredContent=result,
+            content=_text(result["summary"]),
+            _meta={"openai/closeWidget": True},
+        )
+
+    return _run_trip_tool(action)
+
+
 @server.resource(
     "ui://trip/inbox-v2.html",
     name="trip_inbox_ui",
@@ -476,6 +660,26 @@ def trip_itinerary_ui() -> str:
 )
 def trip_budget_ui() -> str:
     return (WIDGETS_DIR / "trip_budget_v3.html").read_text(encoding="utf-8")
+
+
+@server.resource(
+    "ui://trip/clarification-v1.html",
+    name="trip_clarification_ui",
+    description="Trip clarification questions UI",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {
+            "prefersBorder": True,
+            "csp": {
+                "connectDomains": [],
+                "resourceDomains": [],
+            },
+        },
+        "openai/widgetDescription": "Asks concise follow-up questions for underspecified trip planning, hotel, and flight requests.",
+    },
+)
+def trip_clarification_ui() -> str:
+    return (WIDGETS_DIR / "trip_clarification_v1.html").read_text(encoding="utf-8")
 
 
 if __name__ == "__main__":

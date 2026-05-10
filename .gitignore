@@ -10,10 +10,13 @@ htmlcov/
 .DS_Store
 .fastapicloud/
 .gstack/
+.context/
+.mcp-use/
 
 *storybook.log
 storybook-static
 node_modules/
+dist/
 
 # Development artifacts
 *.png

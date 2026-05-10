@@ -1,4 +1,5 @@
 import pytest
+import json
 
 from mcp_servers import travel_agent_server
 from services.trips import FileTripStore, InMemoryTripStore
@@ -173,6 +174,106 @@ def test_trip_summary_reports_counts_and_missing_pieces(trip_store: InMemoryTrip
     assert "Stay is not booked yet." in result.structuredContent["missing_pieces"]
 
 
+def test_prepare_trip_clarification_returns_intent_specific_questions(
+    trip_store: InMemoryTripStore,
+) -> None:
+    trip = travel_agent_server.prepare_trip_clarification(
+        utterance="I want to plan a trip to Venice",
+        known_fields_json="{}",
+    )
+    hotel = travel_agent_server.prepare_trip_clarification(
+        utterance="I want to book hotel in Paris",
+        known_fields_json="{}",
+    )
+    flight = travel_agent_server.prepare_trip_clarification(
+        utterance="I want to book fly to Tokyo",
+        known_fields_json="{}",
+    )
+
+    assert trip.structuredContent["intent"] == "plan_trip"
+    assert trip.structuredContent["destination"] == "Venice"
+    assert [question["id"] for question in trip.structuredContent["questions"]] == [
+        "duration",
+        "travel_style",
+        "timing",
+    ]
+    assert hotel.structuredContent["intent"] == "book_hotel"
+    assert hotel.structuredContent["destination"] == "Paris"
+    assert hotel.structuredContent["questions"][0]["id"] == "hotel_dates"
+    assert flight.structuredContent["intent"] == "book_flight"
+    assert flight.structuredContent["destination"] == "Tokyo"
+    assert flight.structuredContent["questions"][0]["id"] == "origin"
+
+
+def test_trip_clarification_omits_known_fields_and_existing_trip_state(
+    trip_store: InMemoryTripStore,
+) -> None:
+    trip = trip_store.create_trip(
+        "Venice Trip",
+        destination="Venice",
+        start_date="2026-06-01",
+        end_date="2026-06-04",
+    )
+    trip_store.add_item(trip.id, "Hotel Ala confirmed", item_type="hotel", title="Hotel Ala")
+
+    result = travel_agent_server.prepare_trip_clarification(
+        utterance="I want to plan a trip to Venice",
+        intent="plan_trip",
+        trip_id=trip.id,
+        known_fields_json=json.dumps({"travel_style": "food"}),
+    )
+    question_ids = [question["id"] for question in result.structuredContent["questions"]]
+
+    assert result.structuredContent["destination"] == "Venice"
+    assert result.structuredContent["known_fields"]["has_hotel"] is True
+    assert result.structuredContent["known_fields"]["travel_style"] == "food"
+    assert "duration" not in question_ids
+    assert "travel_style" not in question_ids
+
+
+def test_render_and_submit_trip_clarification(trip_store: InMemoryTripStore) -> None:
+    rendered = travel_agent_server.render_trip_clarification(
+        utterance="I want to book hotel in Paris",
+        known_fields_json="{}",
+    )
+    session = rendered.structuredContent
+
+    assert rendered.isError is not True
+    assert rendered.content[0].text == "Opened 3 clarification question(s) for Paris."
+
+    submitted = travel_agent_server.submit_trip_clarification(
+        session_json=json.dumps(session),
+        answers_json=json.dumps(
+            {
+                "hotel_dates": "3-4 nights",
+                "hotel_area": "central",
+                "hotel_budget": "120-220",
+            }
+        ),
+    )
+
+    assert submitted.structuredContent["recommended_next_action"] == "save_hotel_request"
+    assert submitted.structuredContent["resolved_fields"] == {
+        "hotel_dates": "3-4 nights",
+        "hotel_area": "central",
+        "hotel_budget": "120-220",
+    }
+    assert submitted.structuredContent["remaining_fields"] == []
+    assert submitted.meta == {"openai/closeWidget": True}
+
+
+def test_submit_trip_clarification_rejects_invalid_payload(
+    trip_store: InMemoryTripStore,
+) -> None:
+    result = travel_agent_server.submit_trip_clarification(
+        session_json="[]",
+        answers_json="{}",
+    )
+
+    assert result.isError is True
+    assert result.structuredContent == {"error": "session_json must be a JSON object."}
+
+
 def test_tool_returns_clear_error_when_database_url_missing(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(travel_agent_server, "_STORE", None)
     monkeypatch.setattr(
@@ -234,6 +335,7 @@ def test_unified_server_registers_every_tool_output_template() -> None:
         "ui://trip/board-v2.html": travel_agent_server.trip_board_ui,
         "ui://trip/itinerary-v1.html": travel_agent_server.trip_itinerary_ui,
         "ui://trip/budget-v1.html": travel_agent_server.trip_budget_ui,
+        "ui://trip/clarification-v1.html": travel_agent_server.trip_clarification_ui,
     }
 
     for uri, read_resource in templates.items():

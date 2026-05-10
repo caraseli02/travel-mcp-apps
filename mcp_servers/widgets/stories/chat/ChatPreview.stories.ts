@@ -10,7 +10,7 @@ const meta: Meta<ChatPreviewOptions> = {
   argTypes: {
     scenarioId: {
       control: { type: 'select' },
-      options: ['trip-planning'],
+      options: ['trip-planning', 'trip-clarification'],
     },
     displayMode: {
       control: { type: 'select' },
@@ -33,5 +33,11 @@ type Story = StoryObj<ChatPreviewOptions>;
 export const TripPlanningWorkspace: Story = {
   args: {
     scenarioId: 'trip-planning',
+  },
+};
+
+export const TripClarification: Story = {
+  args: {
+    scenarioId: 'trip-clarification',
   },
 };
