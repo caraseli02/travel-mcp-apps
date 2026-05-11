@@ -77,10 +77,12 @@ async def test_mounted_mcp_servers_list_tools() -> None:
                     assert tools["get_trip_board"].title == "Get trip board data"
                     assert tools["get_trip_board"].annotations is not None
                     assert tools["get_trip_board"].annotations.readOnlyHint is True
+                    assert tools["get_trip_board"].outputSchema is not None
                     assert "openai/outputTemplate" not in (tools["get_trip_board"].meta or {})
 
                     assert tools["render_trip_board"].annotations is not None
                     assert tools["render_trip_board"].annotations.readOnlyHint is True
+                    assert tools["render_trip_board"].outputSchema is not None
                     assert tools["render_trip_board"].meta == {
                         "ui": {"resourceUri": "ui://trip/board-v2.html"},
                         "openai/outputTemplate": "ui://trip/board-v2.html",
@@ -91,23 +93,33 @@ async def test_mounted_mcp_servers_list_tools() -> None:
                     assert tools["add_trip_item"].annotations is not None
                     assert tools["add_trip_item"].annotations.idempotentHint is True
                     assert tools["add_trip_item"].annotations.destructiveHint is False
+                    assert tools["add_trip_item"].outputSchema is not None
                     assert "openai/outputTemplate" not in (tools["add_trip_item"].meta or {})
 
                     assert "openai/outputTemplate" not in (
                         tools["prepare_trip_clarification"].meta or {}
                     )
+                    assert tools["prepare_trip_clarification"].outputSchema is not None
                     assert tools["ask_trip_clarification"].meta == {
                         "ui": {"resourceUri": "ui://trip/clarification-v1.html"},
                         "openai/outputTemplate": "ui://trip/clarification-v1.html",
                         "openai/toolInvocation/invoking": "Opening trip questions",
                         "openai/toolInvocation/invoked": "Opened trip questions",
                     }
+                    assert tools["ask_trip_clarification"].outputSchema is not None
                     assert tools["render_trip_clarification"].meta == {
                         "ui": {"resourceUri": "ui://trip/clarification-v1.html"},
                         "openai/outputTemplate": "ui://trip/clarification-v1.html",
                         "openai/toolInvocation/invoking": "Opening trip questions",
                         "openai/toolInvocation/invoked": "Opened trip questions",
                     }
+                    assert tools["render_trip_clarification"].outputSchema is not None
+                    assert tools["submit_trip_clarification"].title == (
+                        "Summarize trip clarification answers"
+                    )
+                    assert tools["submit_trip_clarification"].annotations is not None
+                    assert tools["submit_trip_clarification"].annotations.readOnlyHint is True
+                    assert tools["submit_trip_clarification"].outputSchema is not None
 
 
 def test_travel_plan_placeholder() -> None:
