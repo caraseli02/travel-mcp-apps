@@ -39,7 +39,7 @@ interface OpenAI {
   setWidgetState: (nextState: Record<string, any> | ((prev: Record<string, any>) => Record<string, any>)) => Promise<Record<string, any>>;
   setOpenInAppUrl: (value: string) => Promise<string>;
   callTool: (name: string, input: Record<string, any>) => Promise<Record<string, any>>;
-  sendFollowUpMessage: (message: string) => Promise<void>;
+  sendFollowUpMessage: (message: string | { prompt: string }) => Promise<void>;
   requestClose: () => Promise<void>;
 }
 

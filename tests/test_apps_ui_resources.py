@@ -66,3 +66,7 @@ def test_trip_clarification_resource_includes_submit_and_close_bridge() -> None:
     assert "requestClose" in html
     assert "callTool" in html
     assert "sendFollowUpMessage" in html
+    assert "setWidgetState" in html
+    assert "ui/message" in html
+    assert "tools/call" in html
+    assert "{prompt:text}" in html

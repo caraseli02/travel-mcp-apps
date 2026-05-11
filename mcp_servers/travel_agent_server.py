@@ -119,6 +119,105 @@ def _render_meta(resource_uri: str, invoking: str, invoked: str) -> dict[str, ob
     }
 
 
+OBJECT_SCHEMA: dict[str, Any] = {"type": "object", "additionalProperties": True}
+TRIP_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": True,
+    "required": ["id", "title"],
+    "properties": {
+        "id": {"type": "string"},
+        "title": {"type": "string"},
+        "destination": {"type": ["string", "null"]},
+        "start_date": {"type": ["string", "null"]},
+        "end_date": {"type": ["string", "null"]},
+    },
+}
+TRIP_ITEM_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "additionalProperties": True,
+    "required": ["id", "trip_id", "raw_content", "status"],
+    "properties": {
+        "id": {"type": "string"},
+        "trip_id": {"type": "string"},
+        "raw_content": {"type": "string"},
+        "status": {"type": "string"},
+        "item_type": {"type": ["string", "null"]},
+        "title": {"type": ["string", "null"]},
+    },
+}
+ERROR_OUTPUT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": ["error"],
+    "properties": {"error": {"type": "string"}},
+    "additionalProperties": False,
+}
+
+
+def _output_schema(
+    properties: dict[str, Any],
+    required: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "type": "object",
+        "properties": properties,
+        "required": required or list(properties),
+        "additionalProperties": True,
+    }
+
+
+TOOL_OUTPUT_SCHEMAS: dict[str, dict[str, Any]] = {
+    "create_trip": _output_schema({"trip": TRIP_SCHEMA}),
+    "add_trip_item": _output_schema(
+        {
+            "trip": TRIP_SCHEMA,
+            "item": TRIP_ITEM_SCHEMA,
+            "items": {"type": "array", "items": TRIP_ITEM_SCHEMA},
+            "deduped": {"type": "boolean"},
+        }
+    ),
+    "list_trip_inbox": _output_schema(
+        {"trip": TRIP_SCHEMA, "items": {"type": "array", "items": TRIP_ITEM_SCHEMA}}
+    ),
+    "update_trip_item_status": _output_schema({"item": TRIP_ITEM_SCHEMA}),
+    "get_trip_board": OBJECT_SCHEMA,
+    "render_trip_board": OBJECT_SCHEMA,
+    "get_trip_itinerary": OBJECT_SCHEMA,
+    "get_trip_budget": OBJECT_SCHEMA,
+    "get_trip_summary": _output_schema(
+        {
+            "trip": TRIP_SCHEMA,
+            "counts": OBJECT_SCHEMA,
+            "missing_pieces": {"type": "array", "items": {"type": "string"}},
+        }
+    ),
+    "prepare_trip_clarification": OBJECT_SCHEMA,
+    "ask_trip_clarification": OBJECT_SCHEMA,
+    "render_trip_clarification": OBJECT_SCHEMA,
+    "submit_trip_clarification": _output_schema(
+        {
+            "session": OBJECT_SCHEMA,
+            "resolved_fields": OBJECT_SCHEMA,
+            "remaining_fields": {"type": "array", "items": {"type": "string"}},
+            "recommended_next_action": {"type": "string"},
+            "trip_draft": OBJECT_SCHEMA,
+            "trip_item_draft": OBJECT_SCHEMA,
+            "next_tool_calls": {"type": "array", "items": OBJECT_SCHEMA},
+            "summary": {"type": "string"},
+        }
+    ),
+}
+
+
+def _register_output_schemas() -> None:
+    for tool in server._tool_manager.list_tools():
+        schema = TOOL_OUTPUT_SCHEMAS.get(tool.name)
+        if schema is not None:
+            # FastMCP derives output schemas from return annotations. These tools
+            # return CallToolResult directly so they can control Apps metadata;
+            # attach the equivalent schema to the cached property used by list_tools.
+            tool.__dict__["output_schema"] = {"anyOf": [schema, ERROR_OUTPUT_SCHEMA]}
+
+
 @server.tool(
     name="create_trip",
     title="Create trip workspace",
@@ -587,16 +686,18 @@ def render_trip_clarification(
 
 @server.tool(
     name="submit_trip_clarification",
-    title="Submit trip clarification answers",
+    title="Summarize trip clarification answers",
     description=(
         "Use this after the user answers trip clarification questions. It summarizes "
         "selected answers and recommends whether to create a trip, save hotel "
         "constraints, save flight constraints, or ask a text follow-up. Widgets can "
         "submit session_json. Direct model callers can omit session_json and pass "
-        "utterance, intent, destination, trip_id, and known_fields_json instead."
+        "utterance, intent, destination, trip_id, and known_fields_json instead. "
+        "This tool does not persist a trip or trip item by itself; after it returns, "
+        "continue with the recommended next tool call when appropriate."
     ),
-    annotations=MUTATION,
-    meta=_status_meta("Saving trip answers", "Saved trip answers"),
+    annotations=READ_ONLY,
+    meta=_status_meta("Summarizing trip answers", "Summarized trip answers"),
 )
 def submit_trip_clarification(
     answers_json: str,
@@ -729,6 +830,9 @@ def trip_budget_ui() -> str:
 )
 def trip_clarification_ui() -> str:
     return (WIDGETS_DIR / "trip_clarification_v1.html").read_text(encoding="utf-8")
+
+
+_register_output_schemas()
 
 
 if __name__ == "__main__":
