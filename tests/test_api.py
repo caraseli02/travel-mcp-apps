@@ -5,9 +5,9 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
 from app.main import app
-from mcp_clients.packing_client import PackingClient
-from mcp_clients.travel_client import TravelTipsClient
-from mcp_clients.weather_client import WeatherClient
+from app.server.clients.packing_client import PackingClient
+from app.server.clients.travel_client import TravelTipsClient
+from app.server.clients.weather_client import WeatherClient
 
 
 client = TestClient(app)
@@ -71,9 +71,29 @@ async def test_mounted_mcp_servers_list_tools() -> None:
                         result = await session.list_tools()
 
                 assert {tool.name for tool in result.tools} == expected_tools
+                tools = {tool.name: tool for tool in result.tools}
+                if path == "/mcp/weather/":
+                    assert tools["get_current_weather"].title == "Show current weather"
+                    assert tools["get_current_weather"].annotations is not None
+                    assert tools["get_current_weather"].annotations.readOnlyHint is True
+                    assert tools["get_current_weather"].outputSchema is not None
+                    assert tools["get_current_weather"].meta == {
+                        "ui": {"resourceUri": "ui://weather/dashboard-v5.html"},
+                        "openai/outputTemplate": "ui://weather/dashboard-v5.html",
+                        "openai/toolInvocation/invoking": "Loading current weather",
+                        "openai/toolInvocation/invoked": "Loaded current weather",
+                    }
+                if path == "/mcp/travel/":
+                    assert tools["get_destination_tips"].title == "Show destination tips"
+                    assert tools["get_destination_tips"].annotations is not None
+                    assert tools["get_destination_tips"].annotations.readOnlyHint is True
+                    assert tools["get_destination_tips"].outputSchema is not None
+                if path == "/mcp/packing/":
+                    assert tools["generate_packing_list"].title == "Generate packing list"
+                    assert tools["generate_packing_list"].annotations is not None
+                    assert tools["generate_packing_list"].annotations.readOnlyHint is True
+                    assert tools["generate_packing_list"].outputSchema is not None
                 if path == "/mcp/travel-agent/":
-                    tools = {tool.name: tool for tool in result.tools}
-
                     assert tools["get_trip_board"].title == "Get trip board data"
                     assert tools["get_trip_board"].annotations is not None
                     assert tools["get_trip_board"].annotations.readOnlyHint is True
@@ -84,8 +104,8 @@ async def test_mounted_mcp_servers_list_tools() -> None:
                     assert tools["render_trip_board"].annotations.readOnlyHint is True
                     assert tools["render_trip_board"].outputSchema is not None
                     assert tools["render_trip_board"].meta == {
-                        "ui": {"resourceUri": "ui://trip/board-v2.html"},
-                        "openai/outputTemplate": "ui://trip/board-v2.html",
+                        "ui": {"resourceUri": "ui://trip/board-v3.html"},
+                        "openai/outputTemplate": "ui://trip/board-v3.html",
                         "openai/toolInvocation/invoking": "Rendering trip board",
                         "openai/toolInvocation/invoked": "Rendered trip board",
                     }

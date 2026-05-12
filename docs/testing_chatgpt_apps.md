@@ -21,11 +21,23 @@ Current widget resources:
 | Travel tips | `8102` | `get_destination_tips` | `ui://travel/destination-guide-v2.html` |
 | Travel tips | `8102` | `recommend_activities` | `ui://travel/activity-cards-v2.html` |
 | Travel agent | `8104` | `list_trip_inbox` | `ui://trip/inbox-v2.html` |
-| Travel agent | `8104` | `render_trip_board` | `ui://trip/board-v2.html` |
-| Travel agent | `8104` | `get_trip_itinerary` | `ui://trip/itinerary-v1.html` |
-| Travel agent | `8104` | `get_trip_budget` | `ui://trip/budget-v1.html` |
+| Travel agent | `8104` | `render_trip_board` | `ui://trip/board-v3.html` |
+| Travel agent | `8104` | `get_trip_itinerary` | `ui://trip/itinerary-v3.html` |
+| Travel agent | `8104` | `get_trip_budget` | `ui://trip/budget-v3.html` |
 | Travel agent | `8104` | `ask_trip_clarification` | `ui://trip/clarification-v1.html` |
 | Travel agent | `8104` | `render_trip_clarification` | `ui://trip/clarification-v1.html` |
+
+Travel-agent widget source now lives under `app/web`. The Python resource
+readers use checked-in `app/web/*.html` files as the runtime source of truth;
+`app/web/dist` is package/build output and should match source after a build.
+
+```bash
+cd app/web
+npm install
+npm run typecheck
+npm run build:widgets
+npm run storybook
+```
 
 The FastAPI app also mounts the unified travel-agent MCP endpoint at
 `/mcp/travel-agent/`. Prefer that endpoint for ChatGPT Developer Mode when
@@ -58,7 +70,7 @@ Start the weather server:
 
 ```bash
 source .venv/bin/activate
-python mcp_servers/weather_server.py
+python app/server/weather/mcp.py
 ```
 
 Server URL:
@@ -125,9 +137,9 @@ widget renders real tool output in ChatGPT Developer Mode:
 
 - `list_trip_inbox` renders `ui://trip/inbox-v2.html`.
 - `get_trip_board` fetches board data without rendering a widget.
-- `render_trip_board` renders `ui://trip/board-v2.html`.
-- `get_trip_itinerary` renders `ui://trip/itinerary-v1.html`.
-- `get_trip_budget` renders `ui://trip/budget-v1.html`.
+- `render_trip_board` renders `ui://trip/board-v3.html`.
+- `get_trip_itinerary` renders `ui://trip/itinerary-v3.html`.
+- `get_trip_budget` renders `ui://trip/budget-v3.html`.
 - `ask_trip_clarification` opens `ui://trip/clarification-v1.html` for simple vague trip, hotel, and flight requests.
 - `submit_trip_clarification` returns `_meta["openai/closeWidget"] = true` so transient question widgets can close after successful submit.
 
@@ -154,16 +166,16 @@ Recommended local steps:
    ```bash
    source .venv/bin/activate
    # Weather widgets
-   MCP_DEV_TUNNEL=1 python mcp_servers/weather_server.py
+   MCP_DEV_TUNNEL=1 python app/server/weather/mcp.py
 
    # Travel tips widgets
-   MCP_DEV_TUNNEL=1 python mcp_servers/travel_tips_server.py
+   MCP_DEV_TUNNEL=1 python app/server/travel_tips/mcp.py
 
    # Packing widget
-   MCP_DEV_TUNNEL=1 python mcp_servers/packing_server.py
+   MCP_DEV_TUNNEL=1 python app/server/packing/mcp.py
 
    # Unified travel agent widgets and tools
-   MCP_DEV_TUNNEL=1 python mcp_servers/travel_agent_server.py
+   MCP_DEV_TUNNEL=1 python app/server/travel_agent/mcp.py
    ```
 
    `MCP_DEV_TUNNEL=1` disables localhost-only DNS rebinding protection for this

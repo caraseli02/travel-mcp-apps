@@ -1,19 +1,29 @@
 from collections.abc import Callable
+from pathlib import Path
 
-from mcp_servers.packing_server import packing_checklist_ui
-from mcp_servers.travel_agent_server import (
+from app.server.packing.mcp import packing_checklist_ui
+from app.server.travel_agent.mcp import (
     trip_board_ui,
     trip_budget_ui,
     trip_clarification_ui,
     trip_inbox_ui,
     trip_itinerary_ui,
 )
-from mcp_servers.travel_tips_server import (
+from app.server.travel_tips.mcp import (
     travel_activity_cards_ui,
     travel_destination_guide_ui,
 )
-from mcp_servers.weather_server import weather_dashboard_ui, weather_forecast_chart_ui
+from app.server.weather.mcp import weather_dashboard_ui, weather_forecast_chart_ui
 
+
+WEB_DIR = Path(__file__).resolve().parents[1] / "app" / "web"
+DIST_WIDGETS = [
+    "trip_inbox_v2.html",
+    "trip_board_v3.html",
+    "trip_itinerary_v3.html",
+    "trip_budget_v3.html",
+    "trip_clarification_v1.html",
+]
 
 WIDGETS: list[tuple[str, Callable[[], str], str]] = [
     ("ui://weather/dashboard-v5.html", weather_dashboard_ui, "Current weather"),
@@ -22,11 +32,18 @@ WIDGETS: list[tuple[str, Callable[[], str], str]] = [
     ("ui://travel/destination-guide-v2.html", travel_destination_guide_ui, "Destination guide"),
     ("ui://travel/activity-cards-v2.html", travel_activity_cards_ui, "Activities"),
     ("ui://trip/inbox-v2.html", trip_inbox_ui, "Trip Inbox"),
-    ("ui://trip/board-v2.html", trip_board_ui, "Trip Board"),
-    ("ui://trip/itinerary-v1.html", trip_itinerary_ui, "Day by day"),
-    ("ui://trip/budget-v1.html", trip_budget_ui, "Spending tracker"),
+    ("ui://trip/board-v3.html", trip_board_ui, "Trip Board"),
+    ("ui://trip/itinerary-v3.html", trip_itinerary_ui, "Day by day"),
+    ("ui://trip/budget-v3.html", trip_budget_ui, "Spending tracker"),
     ("ui://trip/clarification-v1.html", trip_clarification_ui, "Trip Clarification"),
 ]
+
+
+def test_built_trip_widgets_match_source_html() -> None:
+    for filename in DIST_WIDGETS:
+        assert (WEB_DIR / "dist" / filename).read_text(encoding="utf-8") == (
+            WEB_DIR / filename
+        ).read_text(encoding="utf-8")
 
 
 def test_apps_ui_resources_are_complete_html_documents() -> None:

@@ -90,11 +90,12 @@ Environment variable changes apply on the next deployment.
 
 - `app/main.py` - FastAPI application factory and app instance
 - `app/config.py` - environment-based settings
+- `app/server/` - Python MCP servers, MCP clients, domain services, sample data, and shared widget assets
+- `app/server/travel_agent/` - Python MCP server package for the unified trip workspace app
+- `app/web/` - ChatGPT Apps widget package with Storybook, bridge harness, fixtures, and widget build output script
 - `app/routers/health.py` - health and MCP readiness endpoints
 - `app/routers/travel.py` - travel API endpoint that orchestrates weather, travel tips, and packing through MCP clients
-- `services/trips.py` - Postgres-backed Trip and TripItem persistence for the unified travel agent
-- `mcp_servers/travel_agent_server.py` - unified MVP MCP endpoint with Trip Inbox, Trip Board, Trip Itinerary, Trip Budget, and trip summary tools
-- `main.py` - compatibility import for `app.main:app`
+- `app/server/services/trips.py` - Postgres-backed Trip and TripItem persistence for the unified travel agent
 - `pyproject.toml` - Project dependencies
 - `.env.example` - local environment variable template
 - `.fastapicloudignore` - deployment upload exclusions
@@ -104,6 +105,20 @@ Environment variable changes apply on the next deployment.
 - `docs/office_hours_trip_inbox_board_2026-04-30.md` - repo-tracked copy of the gstack `/office-hours` product direction
 - `todos/001-ready-p1-mcp-learning-roadmap.md` - detailed MCP learning todo list with hints and references
 - `.kiro/specs/mcp-travel-planner-ui/` - Requirements and design notes for the MCP learning project
+
+### Widget package checks
+
+```bash
+cd app/web
+npm install
+npm run typecheck
+npm run build
+npm run storybook
+```
+
+`build` emits the React component bundle and copies the active trip-agent HTML shells into `app/web/dist`.
+The checked-in `app/web/*.html` files are the runtime source of truth for Python
+resource readers; `app/web/dist` is package/build output and must match source.
 
 ## Learn More
 

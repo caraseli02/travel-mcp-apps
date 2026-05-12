@@ -1,4 +1,4 @@
-from services.travel_tips import get_destination_tips_data, recommend_activities_data
+from app.server.services.travel_tips import get_destination_tips_data, recommend_activities_data
 
 
 def test_destination_tips_include_required_rich_fields() -> None:

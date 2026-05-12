@@ -21,4 +21,11 @@ dev = [
 entrypoint = "app.main:app"
 
 [tool.setuptools.packages.find]
-include = ["app*", "mcp_clients*", "mcp_servers*", "sample_data*", "services*"]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+app = [
+    "server/widgets/*.html",
+    "web/*.html",
+    "web/dist/*",
+]

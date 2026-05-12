@@ -1,4 +1,4 @@
-from services.openweather import normalize_current_weather, normalize_forecast
+from app.server.services.openweather import normalize_current_weather, normalize_forecast
 
 
 def test_normalize_current_weather() -> None:
