@@ -11,6 +11,7 @@ symptoms:
 root_cause: validation_gap
 resolution_type: ci_and_storybook_fix
 severity: medium
+last_refreshed: 2026-05-12
 tags: [storybook, typescript, ci, widgets, migration, static-checks]
 ---
 
@@ -25,7 +26,7 @@ During review, the migration also lost some `Empty` story exports that existed i
 ## Environment
 
 - Module: Travel MCP Widgets
-- Storybook project: `mcp_servers/widgets`
+- Storybook project: `app/web`
 - Affected files: Storybook config, stories, fixtures, package scripts, GitHub Actions
 - Date: 2026-05-05
 - Runtime: local Storybook 10.3.6 with HTML/Vite framework
@@ -33,11 +34,11 @@ During review, the migration also lost some `Empty` story exports that existed i
 ## Symptoms
 
 - `npm run build-storybook` passed locally, but this only proved the current build could compile.
-- `mcp_servers/widgets/package.json` still had no dedicated `typecheck` or combined static check command.
-- Storybook PRs had no workflow scoped to `mcp_servers/widgets/**`.
+- `app/web/package.json` must expose a dedicated `typecheck` and combined static check command.
+- Storybook PRs need workflow coverage for `app/web/**` and server-owned widget assets under `app/server/widgets/**`.
 - The old `test` script still exited with `Error: no test specified`.
 - Comparing old JS stories to the new TS stories showed missing `Empty` variants in several widget stories.
-- A source scan needed to confirm no `.js`, `.mjs`, or `.cjs` Storybook source files remained under `mcp_servers/widgets`.
+- A source scan needed to confirm no `.js`, `.mjs`, or `.cjs` Storybook source files remained under `app/web`.
 
 ## Root Cause
 
@@ -76,7 +77,8 @@ name: Widgets Storybook
 on:
   pull_request:
     paths:
-      - "mcp_servers/widgets/**"
+      - "app/web/**"
+      - "app/server/widgets/**"
       - ".github/workflows/widgets-storybook.yml"
 
 jobs:
@@ -84,17 +86,16 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: mcp_servers/widgets
+        working-directory: app/web
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: mcp_servers/widgets/package-lock.json
+          cache-dependency-path: app/web/package-lock.json
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run build-storybook
+      - run: npm run check
 ```
 
 Restore migrated `Empty` story exports so Storybook keeps edge-state coverage. For example:
@@ -120,7 +121,7 @@ npm run check
 Run the combined local check from the widgets package:
 
 ```bash
-cd mcp_servers/widgets
+cd app/web
 npm run check
 ```
 
@@ -129,7 +130,7 @@ The verified run completed `tsc --noEmit` and `storybook build` successfully.
 Confirm the source migration stays TypeScript-only:
 
 ```bash
-rg --files -g '*.js' -g '*.mjs' -g '*.cjs' mcp_servers/widgets
+rg --files -g '*.js' -g '*.mjs' -g '*.cjs' app/web
 ```
 
 This returned no source files after the migration. Generated Storybook build output may still contain JavaScript inside `storybook-static`, but that is build output rather than Storybook source.
@@ -157,7 +158,3 @@ Browser smoke checks covered representative Storybook behavior:
 - `docs/solutions/ui-bugs/chatgpt-native-widget-overflow-travel-mcp-widgets-20260504.md` documents the v3 prototype UI work that later became part of the Storybook widget review surface.
 - `docs/testing_chatgpt_apps.md` is related for broader Apps SDK and widget verification.
 - `docs/chatgpt_apps_readiness_review.md` is related for pre-review quality gates.
-
-## Refresh Candidate
-
-`docs/solutions/ui-bugs/storybook-widget-preview-v3-ui-drift-20260505.md` is a high-confidence refresh candidate. It still shows `.stories.js` and JavaScript Storybook config examples as the main reference, while the current widget Storybook source is now TypeScript and should be checked with `npm run typecheck` or `npm run check`.

@@ -9,6 +9,7 @@ status: resolved
 root_cause: client_controlled_mcp_payload_contract_gap
 resolution_type: code_fix
 commit: 0749649bbb1af1ffd6584049ecec5c83af374423
+last_refreshed: 2026-05-12
 tags:
   - python
   - fastmcp
@@ -19,9 +20,9 @@ tags:
   - storybook
   - agent-native
 related_files:
-  - mcp_servers/travel_agent_server.py
-  - services/trip_clarification.py
-  - services/trips.py
+  - app/server/travel_agent/mcp.py
+  - app/server/services/trip_clarification.py
+  - app/server/services/trips.py
   - tests/test_travel_agent_server.py
   - tests/test_trip_store.py
 ---
@@ -207,7 +208,7 @@ Verified result:
 Run widget checks:
 
 ```bash
-cd mcp_servers/widgets
+cd app/web
 npm run check
 ```
 
