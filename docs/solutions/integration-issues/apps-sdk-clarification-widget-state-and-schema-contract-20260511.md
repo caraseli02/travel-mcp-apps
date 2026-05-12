@@ -8,6 +8,7 @@ severity: high
 status: resolved
 root_cause: apps_sdk_widget_state_and_tool_contract_gap
 resolution_type: code_fix
+last_refreshed: 2026-05-12
 tags:
   - chatgpt-apps
   - apps-sdk
@@ -18,9 +19,9 @@ tags:
   - output-schema
   - trip-clarification
 related_files:
-  - mcp_servers/travel_agent_server.py
-  - mcp_servers/widgets/trip_clarification_v1.html
-  - mcp_servers/widgets/stories/renderWidget.ts
+  - app/server/travel_agent/mcp.py
+  - app/web/trip_clarification_v1.html
+  - app/web/src/bridge/hostHarness.ts
   - tests/test_api.py
   - tests/test_apps_ui_resources.py
 related_docs:
@@ -252,7 +253,7 @@ Verified result:
 Run widget checks:
 
 ```bash
-cd mcp_servers/widgets
+cd app/web
 npm run check
 ```
 
@@ -266,7 +267,7 @@ storybook build completed successfully
 Run the Storybook interaction smoke test with Playwright after starting Storybook:
 
 ```bash
-cd mcp_servers/widgets
+cd app/web
 npm run storybook -- --ci
 ```
 
@@ -306,4 +307,3 @@ Keep tool names, titles, annotations, and status copy aligned with actual side e
 - `docs/solutions/integration-issues/python-mcp-trip-clarification-hardening-20260510.md` documents server-side validation for `session_json`, `answers_json`, and direct model-call ergonomics.
 - `docs/solutions/integration-issues/apps-sdk-trip-workspace-mvp-tool-render-alignment-20260505.md` documents the broader data/render tool split.
 - `docs/solutions/ui-bugs/storybook-widget-preview-v3-ui-drift-20260505.md` explains why Storybook must simulate Apps bridge behavior and inspect nested widget iframes.
-

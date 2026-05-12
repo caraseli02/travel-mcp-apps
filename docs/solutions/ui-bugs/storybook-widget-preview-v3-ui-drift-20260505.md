@@ -11,6 +11,7 @@ symptoms:
 root_cause: configuration_error
 resolution_type: code_fix
 severity: medium
+last_refreshed: 2026-05-12
 tags: [storybook, vite, apps-sdk, widgets, chatgpt-ui, static-html, resource-versioning]
 ---
 
@@ -18,14 +19,14 @@ tags: [storybook, vite, apps-sdk, widgets, chatgpt-ui, static-html, resource-ver
 
 ## Problem
 
-Storybook started cleanly, discovered all widget stories, and returned successful network responses, but each story showed `No Preview` instead of rendering. After the preview issue was fixed, Storybook still rendered a different UI from `mcp_servers/widgets/v3_prototype_showcase.html`, which was the updated design source the widgets were expected to use.
+Storybook started cleanly, discovered all widget stories, and returned successful network responses, but each story showed `No Preview` instead of rendering. After the preview issue was fixed, Storybook still rendered a different UI from the v3 prototype source that the widgets were expected to use.
 
 ## Environment
 
 - Module: Travel MCP Widgets
 - Stage: pre-ChatGPT Apps review
 - Affected components: Storybook HTML/Vite config, static HTML widget resources, MCP UI resource readers
-- Storybook project: `mcp_servers/widgets`
+- Storybook project: `app/web`
 - Date: 2026-05-05
 - Runtime: local macOS workspace with Storybook browser verification
 
@@ -58,15 +59,11 @@ Replace broad static serving with a whitelist Vite plugin that serves and emits 
 
 ```js
 const widgetHtmlFiles = [
-  "packing_checklist_v3.html",
-  "travel_activity_cards_v3.html",
-  "travel_destination_guide_v1.html",
   "trip_board_v3.html",
   "trip_budget_v3.html",
-  "trip_inbox_v1.html",
+  "trip_clarification_v1.html",
+  "trip_inbox_v2.html",
   "trip_itinerary_v3.html",
-  "weather_dashboard_v4.html",
-  "weather_forecast_chart_v1.html",
 ];
 
 const widgetHtmlPlugin = {
@@ -100,16 +97,12 @@ Limit Storybook discovery to the actual widget and chat-preview stories so gener
 ```js
 const config = {
   stories: [
-    "../stories/PackingChecklist.stories.js",
-    "../stories/TravelActivityCards.stories.js",
-    "../stories/TravelDestinationGuide.stories.js",
-    "../stories/TripBoard.stories.js",
-    "../stories/TripBudget.stories.js",
-    "../stories/TripInbox.stories.js",
-    "../stories/TripItinerary.stories.js",
-    "../stories/WeatherDashboard.stories.js",
-    "../stories/WeatherForecastChart.stories.js",
-    "../stories/chat/ChatPreview.stories.js",
+    "../stories/TripBoard.stories.ts",
+    "../stories/TripBudget.stories.ts",
+    "../stories/TripClarification.stories.ts",
+    "../stories/TripInbox.stories.ts",
+    "../stories/TripItinerary.stories.ts",
+    "../stories/chat/ChatPreview.stories.ts",
   ],
   async viteFinal(viteConfig) {
     return {
@@ -153,20 +146,20 @@ Promote the v3 prototype design into the real standalone widget files, then poin
 
 The standalone v3 widgets keep the prototype's visual language but render dynamically from `window.openai.toolOutput`, `openai:set_globals`, and `ui/notifications/tool-result` instead of hardcoded showcase data.
 
-Current implementation note: the visible v3 HTML files are served behind some older `ui://` resource URIs. This kept the existing tool metadata stable during Storybook review, but it is a deliberate versioning decision that must be revisited before treating the resources as a durable ChatGPT Apps contract.
+Current implementation note after the 2026-05-12 `app/server` and `app/web` migration: trip workspace widgets now use matching v3 `ui://` resource URIs, while standalone legacy-support widgets may still intentionally serve v3 HTML behind older non-trip URIs.
 
 | Tool/UI | Advertised resource URI | HTML file currently served |
 | --- | --- | --- |
 | Packing checklist | `ui://packing/checklist-v2.html` | `packing_checklist_v3.html` |
 | Activity cards | `ui://travel/activity-cards-v2.html` | `travel_activity_cards_v3.html` |
-| Trip board | `ui://trip/board-v2.html` | `trip_board_v3.html` |
-| Trip itinerary | `ui://trip/itinerary-v1.html` | `trip_itinerary_v3.html` |
-| Trip budget | `ui://trip/budget-v1.html` | `trip_budget_v3.html` |
+| Trip board | `ui://trip/board-v3.html` | `trip_board_v3.html` |
+| Trip itinerary | `ui://trip/itinerary-v3.html` | `trip_itinerary_v3.html` |
+| Trip budget | `ui://trip/budget-v3.html` | `trip_budget_v3.html` |
 
-There are two acceptable ways to resolve that before external review:
+There are two acceptable ways to handle future version differences before external review:
 
 1. If the v3 UI is compatible with the existing ChatGPT Apps contract, document the compatibility decision and add tests that assert each legacy URI intentionally serves the v3 file.
-2. If the v3 UI is a material widget contract change, bump the `ui://` URI and `_meta["openai/outputTemplate"]` version together in each standalone server and in `travel_agent_server.py`.
+2. If a UI change is a material widget contract change, bump the `ui://` URI and `_meta["openai/outputTemplate"]` version together in the relevant `app/server/*/mcp.py` module.
 
 Also add an explicit hidden-state guard to each v3 widget:
 
@@ -210,7 +203,7 @@ The fixed implementation passed the Storybook build, the focused pytest suite, s
 - Do not point Storybook `staticDirs` at a project root. Whitelist only the static files that stories need.
 - Treat Storybook as the widget review source, not just a component catalog. Add individual stories for each widget and a full chat-preview story for multi-widget flows.
 - Keep prototype/showcase HTML and production widget resources synchronized. If a prototype becomes the intended UI, promote it into standalone widget files before review.
-- Keep resource URI versions, Storybook fixture URLs, and MCP resource readers in lockstep. A `_v3.html` filename behind a `ui://...-v1/v2.html` URI should be either a documented compatibility choice or a short-lived review bridge.
+- Keep resource URI versions, Storybook fixture URLs, and MCP resource readers in lockstep. A `_v3.html` filename behind an older `ui://...-v1/v2.html` URI should be either a documented compatibility choice or a short-lived review bridge.
 - For Apps SDK widgets, test the iframe with a host harness that simulates `window.openai`, `openai:set_globals`, widget state updates, and tool-result notifications.
 - Browser-test both the Storybook frame and the nested widget iframe. A clean parent frame can still hide a broken child frame.
 - Use `[hidden] { display: none !important; }` in standalone widgets when authored display classes are used.
@@ -220,5 +213,5 @@ The fixed implementation passed the Storybook build, the focused pytest suite, s
 
 - `docs/solutions/ui-bugs/chatgpt-native-widget-overflow-travel-mcp-widgets-20260504.md` documents the v3 prototype visual polish and mobile overflow fix that became the source for the standalone v3 widgets.
 - `docs/testing_chatgpt_apps.md` lists the MCP tools, resource URIs, and manual ChatGPT Apps testing flow.
-- `docs/chatgpt_apps_readiness_review.md` contains resource-versioning guidance that is now directly relevant because v3 files are served behind existing `ui://...-v1/v2.html` URIs.
+- `docs/chatgpt_apps_readiness_review.md` contains resource-versioning guidance for deciding when a visible widget contract should receive a new `ui://...-vN.html` URI.
 - `docs/plans/2026-05-04-001-docs-align-mcp-ui-foundation-plan.md` also calls out versioned `ui://...-vN.html` URIs for incompatible widget changes.

@@ -12,6 +12,7 @@ symptoms:
 root_cause: apps_sdk_contract_drift
 resolution_type: architecture_alignment
 severity: medium
+last_refreshed: 2026-05-12
 tags: [apps-sdk, chatgpt-apps, mcp, tool-descriptors, storybook, qa, travel-agent]
 ---
 
@@ -27,8 +28,8 @@ That made the app weaker on Apps SDK fit. ChatGPT already handles generic weathe
 
 - Module: Travel MCP ChatGPT Apps
 - Primary endpoint: `/mcp/travel-agent/`
-- Server file: `mcp_servers/travel_agent_server.py`
-- Widget project: `mcp_servers/widgets`
+- Server file: `app/server/travel_agent/mcp.py`
+- Widget project: `app/web`
 - Test files: `tests/test_api.py`, `tests/test_travel_agent_server.py`, `tests/test_apps_ui_resources.py`
 - Manual smoke script: `test_scenario.py`
 - Runtime: Python FastMCP plus self-contained HTML widgets in Storybook
@@ -42,7 +43,7 @@ That made the app weaker on Apps SDK fit. ChatGPT already handles generic weathe
   - `recommend_activities`
   - `generate_packing_list`
 - `add_trip_item` saved a fragment but also advertised the inbox widget, so a capture action could force a render.
-- `get_trip_board` fetched data but also owned `ui://trip/board-v2.html`, so ChatGPT had less room to inspect board data before deciding whether the visual board was useful.
+- `get_trip_board` fetched data but also owned the Trip Board widget template, so ChatGPT had less room to inspect board data before deciding whether the visual board was useful.
 - Storybook's chat preview still centered the old weather/activity/packing scenario.
 - `test_scenario.py` still checked for the old 11-tool endpoint and stale `ui://trip/inbox-v1.html` / `ui://trip/board-v1.html` resources.
 - A naive Storybook QA pass treated widget stories as blank because the actual widget content rendered inside nested iframes.
@@ -72,7 +73,7 @@ The manual smoke script added a third drift point: it encoded the old unified en
 
 ### 1. Prune The Unified MVP Endpoint
 
-Remove generic support tools and resources from `mcp_servers/travel_agent_server.py`. Keep the standalone weather, travel tips, and packing servers available for legacy or experimental surfaces, but remove them from the unified ChatGPT Developer Mode MVP path.
+Remove generic support tools and resources from `app/server/travel_agent/mcp.py`. Keep the standalone weather, travel tips, and packing servers available for legacy or experimental surfaces, but remove them from the unified ChatGPT Developer Mode MVP path.
 
 The unified endpoint now exposes only trip workspace tools:
 
@@ -145,7 +146,7 @@ Add `render_trip_board` as the render tool that owns the widget template:
     ),
     annotations=READ_ONLY,
     meta=_render_meta(
-        "ui://trip/board-v2.html",
+        "ui://trip/board-v3.html",
         "Rendering trip board",
         "Rendered trip board",
     ),
@@ -206,7 +207,7 @@ Verified result:
 Run widget checks:
 
 ```bash
-cd mcp_servers/widgets
+cd app/web
 npm run check
 ```
 
@@ -220,7 +221,7 @@ storybook build completed successfully
 Run Storybook QA:
 
 ```bash
-cd mcp_servers/widgets
+cd app/web
 npm run storybook -- --host 127.0.0.1
 ```
 
