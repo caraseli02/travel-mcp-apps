@@ -3,7 +3,8 @@ name: Widgets Storybook
 on:
   pull_request:
     paths:
-      - "mcp_servers/widgets/**"
+      - "app/web/**"
+      - "app/server/widgets/**"
       - ".github/workflows/widgets-storybook.yml"
 
 jobs:
@@ -11,14 +12,13 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: mcp_servers/widgets
+        working-directory: app/web
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
-          cache-dependency-path: mcp_servers/widgets/package-lock.json
+          cache-dependency-path: app/web/package-lock.json
       - run: npm ci
-      - run: npm run typecheck
-      - run: npm run build-storybook
+      - run: npm run check

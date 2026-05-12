@@ -1,8 +1,8 @@
 import pytest
 import json
 
-from mcp_servers import travel_agent_server
-from services.trips import FileTripStore, InMemoryTripStore
+from app.server.travel_agent import mcp as travel_agent_server
+from app.server.services.trips import FileTripStore, InMemoryTripStore
 
 
 @pytest.fixture()
@@ -443,9 +443,9 @@ def test_tool_returns_mcp_error_for_store_connection_failure(
 def test_unified_server_registers_every_tool_output_template() -> None:
     templates = {
         "ui://trip/inbox-v2.html": travel_agent_server.trip_inbox_ui,
-        "ui://trip/board-v2.html": travel_agent_server.trip_board_ui,
-        "ui://trip/itinerary-v1.html": travel_agent_server.trip_itinerary_ui,
-        "ui://trip/budget-v1.html": travel_agent_server.trip_budget_ui,
+        "ui://trip/board-v3.html": travel_agent_server.trip_board_ui,
+        "ui://trip/itinerary-v3.html": travel_agent_server.trip_itinerary_ui,
+        "ui://trip/budget-v3.html": travel_agent_server.trip_budget_ui,
         "ui://trip/clarification-v1.html": travel_agent_server.trip_clarification_ui,
     }
 

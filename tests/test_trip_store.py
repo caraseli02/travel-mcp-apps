@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from services.trips import (
+from app.server.services.trips import (
     FileTripStore,
     InMemoryTripStore,
     TripConfigError,
@@ -161,7 +161,7 @@ def test_store_raises_for_unknown_ids_and_invalid_status() -> None:
 
 
 def test_postgres_store_requires_database_url() -> None:
-    from services.trips import PostgresTripStore
+    from app.server.services.trips import PostgresTripStore
 
     with pytest.raises(TripConfigError, match="DATABASE_URL"):
         PostgresTripStore("")
@@ -172,7 +172,7 @@ def test_postgres_store_requires_database_url() -> None:
     reason="DATABASE_URL is required for Postgres integration coverage",
 )
 def test_postgres_store_persists_trip_items_across_store_instances() -> None:
-    from services.trips import PostgresTripStore
+    from app.server.services.trips import PostgresTripStore
 
     database_url = os.environ["DATABASE_URL"]
     store = PostgresTripStore(database_url)

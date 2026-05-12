@@ -17,8 +17,9 @@ htmlcov/
 storybook-static
 node_modules/
 dist/
+!app/web/dist/
+!app/web/dist/**
 
 # Development artifacts
 *.png
 *.log
-!mcp_servers/widgets/stories/**/*.png

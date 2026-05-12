@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, status
 
 from app.config import Settings, get_settings
 from app.models import TravelPlanRequest, TravelPlanResponse
-from mcp_clients.base_client import MCPClientError
-from mcp_clients.packing_client import PackingClient
-from mcp_clients.travel_client import TravelTipsClient
-from mcp_clients.weather_client import WeatherClient
+from app.server.clients.base_client import MCPClientError
+from app.server.clients.packing_client import PackingClient
+from app.server.clients.travel_client import TravelTipsClient
+from app.server.clients.weather_client import WeatherClient
 
 router = APIRouter()
 

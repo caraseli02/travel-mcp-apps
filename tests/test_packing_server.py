@@ -1,6 +1,6 @@
-from mcp_servers.packing_server import generate_packing_list
-from sample_data.weather_forecasts import sample_weather_forecast_json
-from services.packing import build_packing_list
+from app.server.packing.mcp import generate_packing_list
+from app.server.sample_data.weather_forecasts import sample_weather_forecast_json
+from app.server.services.packing import build_packing_list
 
 
 def test_build_packing_list_adds_cold_weather_items() -> None:
