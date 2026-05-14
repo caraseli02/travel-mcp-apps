@@ -17,8 +17,6 @@ htmlcov/
 storybook-static
 node_modules/
 dist/
-!app/web/dist/
-!app/web/dist/**
 
 # Development artifacts
 tmp/
