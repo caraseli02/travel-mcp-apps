@@ -1,6 +1,23 @@
-import { renderWidget } from '../renderWidget.js';
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 import { chatScenarios, type ChatTurn } from './scenarios.js';
-import type { Theme } from '../renderWidget.js';
+import {
+  TripBoard,
+  TripBudget,
+  TripClarification,
+  TripInbox,
+  TripItinerary,
+  TravelCart,
+  TravelComparisonCarousel,
+  TravelMap,
+  TravelMediaAlbum,
+  TravelOptionsList,
+} from '../../src/trip-components';
+
+interface Theme {
+  colorScheme: 'light' | 'dark';
+  spacing: 'comfortable' | 'compact';
+}
 
 const styles = `
   .chat-preview {
@@ -118,7 +135,7 @@ const styles = `
   }
 
   .tool-widget {
-    padding: 0;
+    padding: 0 0 10px;
   }
 
   @media (max-width: 720px) {
@@ -185,15 +202,30 @@ const createToolTurn = (turn: ChatTurn, hostArgs: HostArgs): HTMLElement => {
   widgetSlot.className = 'tool-widget';
   
   if (turn.widget) {
-    widgetSlot.appendChild(
-      renderWidget({
-        ...turn.widget,
-        displayMode: hostArgs.displayMode,
-        theme: hostArgs.theme,
-        widgetState: hostArgs.widgetState,
-        width: '100%',
-      })
-    );
+    const component =
+      turn.widget.kind === 'board' ? (
+        <TripBoard board={turn.widget.toolOutput} />
+      ) : turn.widget.kind === 'inbox' ? (
+        <TripInbox inbox={turn.widget.toolOutput} />
+      ) : turn.widget.kind === 'budget' ? (
+        <TripBudget budget={turn.widget.toolOutput} />
+      ) : turn.widget.kind === 'itinerary' ? (
+        <TripItinerary itinerary={turn.widget.toolOutput} />
+      ) : turn.widget.kind === 'clarification' ? (
+        <TripClarification clarification={turn.widget.toolOutput} />
+      ) : turn.widget.kind === 'options-list' ? (
+        <TravelOptionsList data={turn.widget.toolOutput} />
+      ) : turn.widget.kind === 'comparison-carousel' ? (
+        <TravelComparisonCarousel data={turn.widget.toolOutput} />
+      ) : turn.widget.kind === 'map' ? (
+        <TravelMap data={turn.widget.toolOutput} />
+      ) : turn.widget.kind === 'album' ? (
+        <TravelMediaAlbum data={turn.widget.toolOutput} />
+      ) : (
+        <TravelCart data={turn.widget.toolOutput} />
+      );
+
+    createRoot(widgetSlot).render(component);
   }
 
   card.append(header, widgetSlot);

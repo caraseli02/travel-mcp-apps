@@ -29,7 +29,8 @@ Current widget resources:
 
 Travel-agent widget source now lives under `app/web`. The Python resource
 readers use checked-in `app/web/*.html` files as the runtime source of truth;
-`app/web/dist` is package/build output and should match source after a build.
+`app/web/dist` is ignored package/build output and should be regenerated locally
+or in CI.
 
 ```bash
 cd app/web

@@ -118,7 +118,7 @@ npm run storybook
 
 `build` emits the React component bundle and copies the active trip-agent HTML shells into `app/web/dist`.
 The checked-in `app/web/*.html` files are the runtime source of truth for Python
-resource readers; `app/web/dist` is package/build output and must match source.
+resource readers; `app/web/dist` is ignored package/build output and should be regenerated locally or in CI.
 
 ## Learn More
 
