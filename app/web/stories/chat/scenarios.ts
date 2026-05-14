@@ -3,21 +3,32 @@ import {
   tripBoardAmsterdam,
   tripBudgetAmsterdam,
   tripItineraryAmsterdam,
+  tripInboxAmsterdam,
+  travelCartAmsterdam,
+  travelOptionsAmsterdam,
 } from '../fixtures/travelFixtures.js';
 
-export interface WidgetConfig {
-  url: string;
-  height: string;
-  toolInput: Record<string, any>;
-  toolOutput: any;
-}
+export type WidgetKind =
+  | 'board'
+  | 'inbox'
+  | 'budget'
+  | 'itinerary'
+  | 'clarification'
+  | 'options-list'
+  | 'comparison-carousel'
+  | 'map'
+  | 'album'
+  | 'cart';
 
 export interface ChatTurn {
   role: 'user' | 'assistant' | 'tool';
   text?: string;
   label?: string;
   status?: string;
-  widget?: WidgetConfig;
+  widget?: {
+    kind: WidgetKind;
+    toolOutput: any;
+  };
 }
 
 export interface ChatScenario {
@@ -43,10 +54,21 @@ export const tripPlanningScenario: ChatScenario = {
       label: 'render_trip_board',
       status: 'Board ready',
       widget: {
-        url: '/trip_board_v3.html',
-        height: '440px',
-        toolInput: { trip_id: 'trip-amsterdam-2026' },
+        kind: 'board',
         toolOutput: tripBoardAmsterdam,
+      },
+    },
+    {
+      role: 'assistant',
+      text: 'Here are the raw notes that still need triage.',
+    },
+    {
+      role: 'tool',
+      label: 'list_trip_inbox',
+      status: 'Inbox ready',
+      widget: {
+        kind: 'inbox',
+        toolOutput: tripInboxAmsterdam,
       },
     },
     {
@@ -58,10 +80,34 @@ export const tripPlanningScenario: ChatScenario = {
       label: 'get_trip_budget',
       status: 'Budget ready',
       widget: {
-        url: '/trip_budget_v3.html',
-        height: '360px',
-        toolInput: { trip_id: 'trip-amsterdam-2026' },
+        kind: 'budget',
         toolOutput: tripBudgetAmsterdam,
+      },
+    },
+    {
+      role: 'assistant',
+      text: 'I also mapped the key places so you can see how the stay, museum, food route, and airport transfer relate.',
+    },
+    {
+      role: 'tool',
+      label: 'render_trip_map',
+      status: 'Map ready',
+      widget: {
+        kind: 'map',
+        toolOutput: travelOptionsAmsterdam,
+      },
+    },
+    {
+      role: 'assistant',
+      text: 'Here are the travel options in a reviewable list before we turn them into commitments.',
+    },
+    {
+      role: 'tool',
+      label: 'render_travel_options',
+      status: 'Options ready',
+      widget: {
+        kind: 'options-list',
+        toolOutput: travelOptionsAmsterdam,
       },
     },
     {
@@ -73,10 +119,21 @@ export const tripPlanningScenario: ChatScenario = {
       label: 'get_trip_itinerary',
       status: 'Itinerary ready',
       widget: {
-        url: '/trip_itinerary_v3.html',
-        height: '390px',
-        toolInput: { trip_id: 'trip-amsterdam-2026' },
+        kind: 'itinerary',
         toolOutput: tripItineraryAmsterdam,
+      },
+    },
+    {
+      role: 'assistant',
+      text: 'Finally, this draft package collects the selected pieces without implying anything has been booked yet.',
+    },
+    {
+      role: 'tool',
+      label: 'render_trip_cart',
+      status: 'Draft package ready',
+      widget: {
+        kind: 'cart',
+        toolOutput: travelCartAmsterdam,
       },
     },
   ],
@@ -99,9 +156,7 @@ export const tripClarificationScenario: ChatScenario = {
       label: 'ask_trip_clarification',
       status: 'Questions ready',
       widget: {
-        url: '/trip_clarification_v1.html',
-        height: '360px',
-        toolInput: { utterance: 'I want to plan a trip to Venice' },
+        kind: 'clarification',
         toolOutput: tripClarificationVenice,
       },
     },

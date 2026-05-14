@@ -11,8 +11,8 @@ symptoms:
 root_cause: configuration_error
 resolution_type: code_fix
 severity: medium
-last_refreshed: 2026-05-12
-tags: [storybook, vite, apps-sdk, widgets, chatgpt-ui, static-html, resource-versioning]
+last_refreshed: 2026-05-14
+tags: [storybook, vite, apps-sdk, widgets, chatgpt-ui, static-html, resource-versioning, react-components, component-build, mapbox]
 ---
 
 # Troubleshooting: Storybook No Preview and V3 Widget UI Drift
@@ -171,13 +171,26 @@ Also add an explicit hidden-state guard to each v3 widget:
 
 This matters because custom classes such as `.empty { display: grid; }` can override the browser's default `[hidden]` behavior and leave loading/empty panels visible over real content.
 
+Current implementation note after the 2026-05-14 React travel component migration: Storybook now covers both static HTML widget resources and React Apps SDK UI components. The React travel components live under `app/web/src/trip-components`, with `TravelPizzazComponents.tsx` reduced to an export barrel for the travel options list, comparison carousel, map, media album, and cart modules. `useWidgetState.ts` centralizes host bridge state persistence for the React component surface.
+
+The component build also changed the resource shape. Vite now emits the React component entry plus split chunks, including the lazily loaded Mapbox chunk:
+
+- `app/web/dist/component.js`
+- `app/web/dist/chunks/component.js`
+- `app/web/dist/chunks/mapbox-gl.js`
+
+Keep `mapbox-gl` out of shared barrels and non-map component paths. The map component should remain the only place that dynamically imports Mapbox so non-map stories and widgets do not pay for, or break on, the map dependency.
+
 ## Verification
 
-Run the static build:
+Run the full web validation path:
 
 ```bash
-npm run build-storybook
+cd app/web
+npm run check
 ```
+
+The current `check` script runs TypeScript, copies standalone widget resources, builds the React component bundle, and builds static Storybook.
 
 Run focused MCP/UI resource tests:
 
@@ -193,8 +206,17 @@ Verify in the browser:
 - Check the console for runtime errors.
 - Check failed network requests.
 - For v3 widgets, inspect the child iframe URL and confirm it contains the expected `_v3.html` file.
+- For React Apps SDK UI stories, inspect `Trip Components / Apps SDK UI` and verify the options list, comparison carousel, map, album, cart, board, itinerary, inbox, budget, and clarification states render interactively.
+- Confirm the component build output includes the split Mapbox chunk at `app/web/dist/chunks/mapbox-gl.js`.
 - Check that rendered content appears without visible loading/empty states.
 - Include the full chat preview stories, especially the trip-planning conversation that combines board, itinerary, budget, and packing widgets.
+
+Run the production dependency audit after dependency changes:
+
+```bash
+cd app/web
+npm audit --omit=dev
+```
 
 The fixed implementation passed the Storybook build, the focused pytest suite, six key v3 browser checks, and a full sweep of 29 Storybook stories with no console errors or failed requests.
 
@@ -205,7 +227,10 @@ The fixed implementation passed the Storybook build, the focused pytest suite, s
 - Keep prototype/showcase HTML and production widget resources synchronized. If a prototype becomes the intended UI, promote it into standalone widget files before review.
 - Keep resource URI versions, Storybook fixture URLs, and MCP resource readers in lockstep. A `_v3.html` filename behind an older `ui://...-v1/v2.html` URI should be either a documented compatibility choice or a short-lived review bridge.
 - For Apps SDK widgets, test the iframe with a host harness that simulates `window.openai`, `openai:set_globals`, widget state updates, and tool-result notifications.
+- For React Apps SDK UI components, test `window.openai.widgetState` persistence and state update behavior through `useWidgetState`.
 - Browser-test both the Storybook frame and the nested widget iframe. A clean parent frame can still hide a broken child frame.
+- Keep map setup isolated to the travel map component. Do not import `mapbox-gl` from shared component modules, export barrels, or story helpers.
+- Keep each React travel component focused. If a component starts accumulating unrelated list, detail, map, album, and cart concerns, split it before it becomes difficult to review visually.
 - Use `[hidden] { display: none !important; }` in standalone widgets when authored display classes are used.
 - When a widget's visible contract changes materially, review whether the `ui://...` resource URI version should change instead of serving new markup from an old URI.
 
@@ -215,3 +240,4 @@ The fixed implementation passed the Storybook build, the focused pytest suite, s
 - `docs/testing_chatgpt_apps.md` lists the MCP tools, resource URIs, and manual ChatGPT Apps testing flow.
 - `docs/chatgpt_apps_readiness_review.md` contains resource-versioning guidance for deciding when a visible widget contract should receive a new `ui://...-vN.html` URI.
 - `docs/plans/2026-05-04-001-docs-align-mcp-ui-foundation-plan.md` also calls out versioned `ui://...-vN.html` URIs for incompatible widget changes.
+- `docs/solutions/ui-bugs/travel-storybook-app-sdk-component-review-fixes.md` documents the 2026-05-14 React Apps SDK UI component review fixes, including component splitting, lazy Mapbox loading, widget-state persistence, and lodash override coverage.

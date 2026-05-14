@@ -21,5 +21,6 @@ dist/
 !app/web/dist/**
 
 # Development artifacts
+tmp/
 *.png
 *.log

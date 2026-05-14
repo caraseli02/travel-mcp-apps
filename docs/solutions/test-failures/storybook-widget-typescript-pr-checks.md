@@ -11,8 +11,8 @@ symptoms:
 root_cause: validation_gap
 resolution_type: ci_and_storybook_fix
 severity: medium
-last_refreshed: 2026-05-12
-tags: [storybook, typescript, ci, widgets, migration, static-checks]
+last_refreshed: 2026-05-14
+tags: [storybook, typescript, ci, widgets, migration, static-checks, component-build, apps-sdk-ui]
 ---
 
 # Troubleshooting: Storybook TypeScript Migration Static Checks
@@ -61,10 +61,13 @@ Add package scripts that expose both the TypeScript check and the combined Story
 ```json
 {
   "scripts": {
+    "build": "npm run build:widgets && npm run build:component",
+    "build:component": "vite build",
+    "build:widgets": "node scripts/copy-widgets-to-dist.mjs",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run build-storybook"
+    "check": "npm run typecheck && npm run build && npm run build-storybook"
   }
 }
 ```
@@ -112,9 +115,19 @@ Finally, document the new validation commands in the migration summary so future
 
 ```bash
 npm run typecheck
+npm run build
 npm run build-storybook
 npm run check
 ```
+
+Current implementation note after the 2026-05-14 React Apps SDK UI component migration: the combined check must cover both standalone HTML widget resources and the React component library build. `npm run build` now copies static widgets and runs Vite, producing `dist/component.js`, `dist/chunks/component.js`, and the lazy `dist/chunks/mapbox-gl.js` chunk used by the travel map component.
+
+Story parity is also no longer represented by separate per-widget story files. Storybook now discovers:
+
+- `app/web/stories/TripComponents.stories.tsx`
+- `app/web/stories/chat/ChatPreview.stories.ts`
+
+The trip component story uses controls such as `kind` and `state` to exercise default, empty, and error surfaces. When checking parity after future migrations, verify that each component kind still exposes the important state coverage even if it is not exported as a separate `Empty` story.
 
 ## Verification
 
@@ -125,21 +138,29 @@ cd app/web
 npm run check
 ```
 
-The verified run completed `tsc --noEmit` and `storybook build` successfully.
+The verified run should complete `tsc --noEmit`, `build:widgets`, `build:component`, and `storybook build` successfully.
 
 Confirm the source migration stays TypeScript-only:
 
 ```bash
-rg --files -g '*.js' -g '*.mjs' -g '*.cjs' app/web
+rg --files -g '*.js' -g '*.mjs' -g '*.cjs' app/web/src app/web/stories app/web/.storybook
 ```
 
-This returned no source files after the migration. Generated Storybook build output may still contain JavaScript inside `storybook-static`, but that is build output rather than Storybook source.
+This should return no source files after the migration. Generated outputs such as `app/web/dist`, `app/web/storybook-static`, and dependencies under `node_modules` may still contain JavaScript, but those are build or vendor artifacts rather than Storybook source.
+
+Run the production dependency audit after package changes:
+
+```bash
+cd app/web
+npm audit --omit=dev
+```
 
 Browser smoke checks covered representative Storybook behavior:
 
 - `Chat Preview / Trip Planning Workspace` rendered nested widget iframes.
 - `Packing Checklist / Long Content` rendered and checklist interaction updated visible state.
 - `Travel Activity Cards / Empty` rendered the expected empty-state message.
+- `Trip Components / Apps SDK UI` rendered React component kinds for options list, comparison carousel, map, album, cart, board, itinerary, inbox, budget, and clarification, including error and empty states where supported.
 
 ## Prevention
 
@@ -149,6 +170,8 @@ Browser smoke checks covered representative Storybook behavior:
 - Scope CI workflows to the paths they protect so Storybook checks run on relevant PRs without slowing unrelated changes.
 - Before a JS-to-TS story migration, list old story exports and compare them after migration.
 - Preserve `Empty`, `Loading`, `Error`, `Long Content`, and interactive variants because they catch edge-state regressions that builds often miss.
+- For consolidated control-driven stories, preserve state coverage through typed controls and fixtures even when there is not a one-export-per-state story file.
+- Keep component build validation in the default `check` path so React Apps SDK UI resources are validated before Storybook is published or reviewed.
 - Browser-smoke at least one nested chat preview, one long-content widget, one empty-state widget, and one interactive widget after Storybook migration work.
 - Avoid committing generated Storybook output, transpiled JS, cache folders, or coverage output as source review artifacts.
 
@@ -156,5 +179,6 @@ Browser smoke checks covered representative Storybook behavior:
 
 - `docs/solutions/ui-bugs/storybook-widget-preview-v3-ui-drift-20260505.md` documents the earlier Storybook preview and v3 widget drift fix that this TypeScript/CI guard builds on.
 - `docs/solutions/ui-bugs/chatgpt-native-widget-overflow-travel-mcp-widgets-20260504.md` documents the v3 prototype UI work that later became part of the Storybook widget review surface.
+- `docs/solutions/ui-bugs/travel-storybook-app-sdk-component-review-fixes.md` documents the 2026-05-14 React Apps SDK UI component review fixes that made the component build, lazy Mapbox chunk, widget state persistence, and production audit part of the expected validation surface.
 - `docs/testing_chatgpt_apps.md` is related for broader Apps SDK and widget verification.
 - `docs/chatgpt_apps_readiness_review.md` is related for pre-review quality gates.
