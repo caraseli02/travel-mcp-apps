@@ -53,6 +53,7 @@ def test_built_trip_widgets_exist_and_have_injections() -> None:
         assert "<div id=\"root\"></div>" in html
         assert "<script type=\"module\">" in html
         assert "/src/entries/" not in html
+        assert "@font-face" not in html
         assert "<script type=\"module\" crossorigin src=" not in html
         assert "<link rel=\"modulepreload\"" not in html
         assert "<link rel=\"stylesheet\"" not in html
