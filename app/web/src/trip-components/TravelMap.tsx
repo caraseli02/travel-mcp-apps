@@ -163,7 +163,7 @@ export function TravelMap({ data }: { data: TravelOptionsData | ErrorOutput }) {
               style={{ position: "absolute", inset: 0 }}
             />
             <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-secondary shadow-sm">
-              {mapError ? "Local map preview" : "Live Mapbox preview"}
+              {mapError || !MAPBOX_ACCESS_TOKEN ? "Local map preview" : "Live Mapbox preview"}
             </div>
           </div>
           <div className="border-t border-[var(--color-border)] p-4 md:border-l md:border-t-0">

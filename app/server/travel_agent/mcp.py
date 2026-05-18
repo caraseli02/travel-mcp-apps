@@ -35,6 +35,7 @@ from app.server.services.trips import (
 
 WEB_DIR = Path(__file__).resolve().parents[2] / "web"
 WEB_DIST_DIR = WEB_DIR / "dist"
+WEB_RUNTIME_TEMPLATES_DIR = WEB_DIR / "runtime_templates"
 _STORE: PostgresTripStore | FileTripStore | None = None
 MAX_JSON_PAYLOAD_CHARS = 12_000
 MAX_JSON_OBJECT_KEYS = 64
@@ -123,12 +124,12 @@ def _render_meta(resource_uri: str, invoking: str, invoked: str) -> dict[str, ob
 
 
 def _read_widget_html(filename: str) -> str:
-    widget_path = WEB_DIST_DIR / "templates" / filename
+    widget_path = WEB_RUNTIME_TEMPLATES_DIR / filename
     if not widget_path.exists():
-        widget_path = WEB_DIR / "templates" / filename
+        widget_path = WEB_DIST_DIR / "templates" / filename
     if not widget_path.exists():
         raise FileNotFoundError(
-            f"Widget asset {filename} was not found. Run `npm run build` in app/web."
+            f"Built widget asset {filename} was not found. Run `npm run build` in app/web before deploying."
         )
     return widget_path.read_text(encoding="utf-8")
 
