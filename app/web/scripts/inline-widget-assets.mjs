@@ -1,10 +1,11 @@
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = path.join(root, "dist");
 const templatesDir = path.join(distDir, "templates");
+const runtimeTemplatesDir = path.join(root, "runtime_templates");
 let nextModuleId = 0;
 
 const escapeScript = (source) => source.replaceAll("</script", "<\\/script");
@@ -94,6 +95,8 @@ const inlineTemplate = async (filename) => {
   );
 
   await writeFile(templatePath, html, "utf8");
+  await mkdir(runtimeTemplatesDir, { recursive: true });
+  await writeFile(path.join(runtimeTemplatesDir, filename), html, "utf8");
 };
 
 const replaceAsync = async (source, pattern, replacement) => {

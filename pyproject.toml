@@ -29,5 +29,6 @@ app = [
     "web/*.html",
     "web/dist/*",
     "web/dist/templates/*.html",
+    "web/runtime_templates/*.html",
     "web/templates/*.html",
 ]
