@@ -3,6 +3,7 @@ import { Badge } from "@openai/apps-sdk-ui/components/Badge";
 import { Button } from "@openai/apps-sdk-ui/components/Button";
 import { compact, titleize } from "./format";
 import { TripShell } from "./TripShell";
+import { useCallTool } from "../bridge/useCallTool";
 import type { ErrorOutput, TripInboxData } from "./types";
 
 const isError = (inbox: TripInboxData | ErrorOutput): inbox is ErrorOutput =>
@@ -54,12 +55,7 @@ export function TripInbox({ inbox }: { inbox: TripInboxData | ErrorOutput }) {
                   {meta.length > 0 ? <p className="mt-2 text-sm text-secondary">{meta.join(" · ")}</p> : null}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button color="secondary" variant="soft" size="sm">
-                    Shortlist
-                  </Button>
-                  <Button color="primary" variant="solid" size="sm">
-                    Add to board
-                  </Button>
+                  <InboxActionButtons item={item} />
                 </div>
               </section>
             );
@@ -67,5 +63,38 @@ export function TripInbox({ inbox }: { inbox: TripInboxData | ErrorOutput }) {
         </div>
       </article>
     </TripShell>
+  );
+}
+
+function InboxActionButtons({ item }: { item: any }) {
+  const { sendFollowUpMessage } = useCallTool();
+  const [shortlistStatus, setShortlistStatus] = React.useState("Shortlist");
+  const [addStatus, setAddStatus] = React.useState("Add to board");
+
+  return (
+    <>
+      <Button
+        color="secondary"
+        variant="soft"
+        size="sm"
+        onClick={() => {
+          setShortlistStatus("Shortlisted!");
+          sendFollowUpMessage(`Shortlist fragment: ${item.title}`);
+        }}
+      >
+        {shortlistStatus}
+      </Button>
+      <Button
+        color="primary"
+        variant="solid"
+        size="sm"
+        onClick={() => {
+          setAddStatus("Added!");
+          sendFollowUpMessage(`Add fragment to board: ${item.title}`);
+        }}
+      >
+        {addStatus}
+      </Button>
+    </>
   );
 }

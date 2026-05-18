@@ -28,4 +28,6 @@ app = [
     "server/widgets/*.html",
     "web/*.html",
     "web/dist/*",
+    "web/dist/templates/*.html",
+    "web/templates/*.html",
 ]
