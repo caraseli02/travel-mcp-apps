@@ -13,8 +13,10 @@ import {
 } from "./travel-shared";
 import type { ErrorOutput, TravelOptionsData } from "./types";
 import { useWidgetState } from "./useWidgetState";
+import { useCallTool } from "../bridge/useCallTool";
 
 export function TravelOptionsList({ data }: { data: TravelOptionsData | ErrorOutput }) {
+  const { sendFollowUpMessage } = useCallTool();
   const [category, setCategory] = useWidgetState("travel-options-list:category", "all");
   const [status, setStatus] = useWidgetState("travel-options-list:status", "all");
   const [selectedId, setSelectedId] = useWidgetState<string | null>("travel-options-list:selected-id", null);
@@ -86,7 +88,17 @@ export function TravelOptionsList({ data }: { data: TravelOptionsData | ErrorOut
               </div>
             )}
           </div>
-          <OptionDetail option={selected} action="Compare" secondaryAction="Add to itinerary" />
+          <OptionDetail
+            option={selected}
+            action="Compare"
+            secondaryAction="Add to itinerary"
+            onAction={() => {
+              if (selected) sendFollowUpMessage(`Compare option: ${selected.title}`);
+            }}
+            onSecondaryAction={() => {
+              if (selected) sendFollowUpMessage(`Add to itinerary: ${selected.title}`);
+            }}
+          />
         </div>
       </article>
     </TripShell>

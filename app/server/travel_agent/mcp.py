@@ -123,12 +123,12 @@ def _render_meta(resource_uri: str, invoking: str, invoked: str) -> dict[str, ob
 
 
 def _read_widget_html(filename: str) -> str:
-    widget_path = WEB_DIR / filename
+    widget_path = WEB_DIST_DIR / "templates" / filename
     if not widget_path.exists():
-        widget_path = WEB_DIST_DIR / filename
+        widget_path = WEB_DIR / "templates" / filename
     if not widget_path.exists():
         raise FileNotFoundError(
-            f"Widget asset {filename} was not found. Run `npm run build:widgets` in app/web."
+            f"Widget asset {filename} was not found. Run `npm run build` in app/web."
         )
     return widget_path.read_text(encoding="utf-8")
 

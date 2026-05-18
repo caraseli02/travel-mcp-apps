@@ -146,10 +146,14 @@ export function OptionDetail({
   option,
   action,
   secondaryAction,
+  onAction,
+  onSecondaryAction,
 }: {
   option: TravelOption | null;
   action?: string;
   secondaryAction?: string;
+  onAction?: () => void;
+  onSecondaryAction?: () => void;
 }) {
   const [feedback, setFeedback] = React.useState<string | null>(null);
 
@@ -232,7 +236,15 @@ export function OptionDetail({
       ) : null}
       <div className="mt-4 flex flex-wrap gap-2">
         {action ? (
-          <Button color="primary" variant="solid" size="sm" onClick={() => setFeedback(`${action}: ${option.title}`)}>
+          <Button
+            color="primary"
+            variant="solid"
+            size="sm"
+            onClick={() => {
+              if (onAction) onAction();
+              else setFeedback(`${action}: ${option.title}`);
+            }}
+          >
             {action}
           </Button>
         ) : null}
@@ -241,7 +253,10 @@ export function OptionDetail({
             color="secondary"
             variant="soft"
             size="sm"
-            onClick={() => setFeedback(`${secondaryAction}: ${option.title}`)}
+            onClick={() => {
+              if (onSecondaryAction) onSecondaryAction();
+              else setFeedback(`${secondaryAction}: ${option.title}`);
+            }}
           >
             {secondaryAction}
           </Button>

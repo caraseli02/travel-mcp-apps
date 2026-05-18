@@ -453,4 +453,10 @@ def test_unified_server_registers_every_tool_output_template() -> None:
         html = read_resource()
 
         assert html.startswith("<!doctype html>"), uri
-        assert "window.openai?.toolOutput" in html, uri
+        assert "<script type=\"module\">" in html, uri
+        assert "<div id=\"root\"></div>" in html, uri
+        assert "<script type=\"module\" crossorigin src=" not in html, uri
+        assert "<link rel=\"modulepreload\"" not in html, uri
+        assert "<link rel=\"stylesheet\"" not in html, uri
+        assert "from\"../chunks/" not in html, uri
+        assert "from\"/chunks/" not in html, uri
