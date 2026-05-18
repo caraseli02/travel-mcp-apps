@@ -25,10 +25,16 @@ const parseSpecifiers = (source) =>
 const stripSourceMapComment = (source) =>
   source.replace(/\n?\/\/# sourceMappingURL=.*$/gm, "");
 
+const parseExports = (source) =>
+  source.split(",").map((specifier) => {
+    const [local, exported] = specifier.trim().split(/\s+as\s+/);
+    return { local, exported: exported ?? local };
+  });
+
 const parseAndRemoveExports = (source) => {
   const exports = new Map();
   const code = source.replace(/export\{([^}]+)\};?\s*$/m, (_match, specifiers) => {
-    for (const { exported, local } of parseSpecifiers(specifiers)) {
+    for (const { exported, local } of parseExports(specifiers)) {
       exports.set(local, exported);
     }
     return "";
