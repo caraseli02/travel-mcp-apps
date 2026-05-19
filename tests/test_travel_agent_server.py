@@ -80,6 +80,122 @@ def test_render_trip_board_matches_data_tool_payload(trip_store: InMemoryTripSto
     assert render_result.content[0].text == "Rendered trip board for London."
 
 
+def test_render_trip_map_returns_mock_mapbox_coordinates(trip_store: InMemoryTripStore) -> None:
+    trip = trip_store.create_trip("Venice plan", destination="Venice")
+    hotel = travel_agent_server.add_trip_item(
+        trip.id,
+        "Hotel Ala near San Marco, EUR 180/night",
+        title="Hotel Ala",
+        location_note="San Marco",
+    ).structuredContent["item"]
+    restaurant = travel_agent_server.add_trip_item(
+        trip.id,
+        "Dinner at Estro, $42",
+        item_type="restaurant",
+        title="Estro",
+        location_note="Dorsoduro",
+    ).structuredContent["item"]
+    transport = travel_agent_server.add_trip_item(
+        trip.id,
+        "Ferry to Burano EUR 9",
+        item_type="transport",
+        title="Burano ferry",
+    ).structuredContent["item"]
+    travel_agent_server.add_trip_item(trip.id, "Budget must stay under EUR 1200", item_type="constraint")
+    travel_agent_server.update_trip_item_status(hotel["id"], "booked")
+    travel_agent_server.update_trip_item_status(restaurant["id"], "shortlisted")
+    travel_agent_server.update_trip_item_status(transport["id"], "shortlisted")
+
+    result = travel_agent_server.render_trip_map(trip.id)
+
+    assert result.isError is not True
+    assert result.structuredContent["trip"]["destination"] == "Venice"
+    assert [option["title"] for option in result.structuredContent["options"]] == [
+        "Hotel Ala",
+        "Estro",
+        "Burano ferry",
+    ]
+    first_coordinates = result.structuredContent["options"][0]["coordinates"]
+    assert first_coordinates["lat"] == 45.4408
+    assert first_coordinates["lon"] == 12.3155
+    assert result.structuredContent["options"][0]["price"] == 180
+    assert result.structuredContent["options"][1]["currency"] == "USD"
+    assert result.structuredContent["options"][2]["category"] == "transit"
+
+
+def test_render_trip_options_bounds_and_truncates_payload(trip_store: InMemoryTripStore) -> None:
+    trip = trip_store.create_trip("Paris plan", destination="Paris")
+    long_text = "Louvre visit " + "x" * 500
+    travel_agent_server.add_trip_item(trip.id, long_text, item_type="activity", title=long_text)
+    for index in range(30):
+        travel_agent_server.add_trip_item(
+            trip.id,
+            f"Restaurant option {index} EUR {20 + index}",
+            item_type="restaurant",
+            title=f"Restaurant {index}",
+        )
+
+    result = travel_agent_server.render_trip_options(trip.id)
+
+    assert result.isError is not True
+    assert len(result.structuredContent["options"]) == travel_agent_server.MAX_TRAVEL_OPTIONS
+    assert result.structuredContent["options"][0]["title"].endswith("...")
+    assert len(result.structuredContent["options"][0]["description"]) <= travel_agent_server.MAX_WIDGET_TEXT_CHARS
+
+
+def test_render_trip_cart_handles_mixed_currency(trip_store: InMemoryTripStore) -> None:
+    trip = trip_store.create_trip("Lisbon plan", destination="Lisbon")
+    eur_item = travel_agent_server.add_trip_item(
+        trip.id,
+        "Hotel EUR 100",
+        item_type="hotel",
+        title="Hotel",
+    ).structuredContent["item"]
+    usd_item = travel_agent_server.add_trip_item(
+        trip.id,
+        "Tour USD 40",
+        item_type="activity",
+        title="Tour",
+    ).structuredContent["item"]
+    travel_agent_server.update_trip_item_status(eur_item["id"], "shortlisted")
+    travel_agent_server.update_trip_item_status(usd_item["id"], "shortlisted")
+
+    result = travel_agent_server.render_trip_cart(trip.id)
+
+    assert result.isError is not True
+    assert result.structuredContent["currency"] == "MIXED"
+    assert [item["price"] for item in result.structuredContent["items"]] == [100, 40]
+
+
+def test_render_trip_map_includes_only_public_mapbox_token(
+    monkeypatch: pytest.MonkeyPatch,
+    trip_store: InMemoryTripStore,
+) -> None:
+    trip = trip_store.create_trip("Venice plan", destination="Venice")
+    travel_agent_server.add_trip_item(trip.id, "Hotel EUR 100", item_type="hotel", title="Hotel")
+    monkeypatch.setenv("MAPBOX_ACCESS_TOKEN", "sk.secret")
+
+    secret_result = travel_agent_server.render_trip_map(trip.id)
+
+    assert "mapbox_access_token" not in secret_result.structuredContent
+
+    monkeypatch.setenv("MAPBOX_ACCESS_TOKEN", "pk.public-test-token")
+    public_result = travel_agent_server.render_trip_map(trip.id)
+
+    assert public_result.structuredContent["mapbox_access_token"] == "pk.public-test-token"
+
+
+def test_new_render_tools_have_specific_output_schemas() -> None:
+    tools = {tool.name: tool for tool in travel_agent_server.server._tool_manager.list_tools()}
+
+    assert tools["render_trip_map"].output_schema["anyOf"][0]["properties"]["options"]["items"]["properties"][
+        "coordinates"
+    ]["properties"]["lat"] == {"type": "number"}
+    assert tools["render_trip_cart"].output_schema["anyOf"][0]["properties"]["items"]["items"]["properties"][
+        "price"
+    ] == {"type": "number"}
+
+
 def test_itinerary_tool_groups_items_by_day(trip_store: InMemoryTripStore) -> None:
     trip = trip_store.create_trip("Rome")
     activity = travel_agent_server.add_trip_item(

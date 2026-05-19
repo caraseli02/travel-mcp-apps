@@ -131,6 +131,14 @@ def test_vite_apps_ui_resources_include_bridge_update_handlers() -> None:
         assert "ui/notifications/tool-result" in html
 
 
+def test_trip_map_resource_declares_mapbox_csp() -> None:
+    from app.server.travel_agent import mcp as travel_agent_server
+
+    assert "https://api.mapbox.com" in travel_agent_server.MAPBOX_CSP["connectDomains"]
+    assert "https://events.mapbox.com" in travel_agent_server.MAPBOX_CSP["connectDomains"]
+    assert "https://api.mapbox.com" in travel_agent_server.MAPBOX_CSP["resourceDomains"]
+
+
 def test_trip_clarification_resource_includes_submit_and_close_bridge() -> None:
     html = trip_clarification_ui()
 

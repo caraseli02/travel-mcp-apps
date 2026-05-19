@@ -28,6 +28,7 @@ const escapeStyle = (source) => source.replaceAll("</style", "<\\/style");
 const stripSourceMapComment = (source) =>
   source.replace(/\n?\/\/# sourceMappingURL=.*$/gm, "");
 const stripFontFaces = (source) => source.replace(/@font-face\s*\{[^{}]*\}/g, "");
+const stripTrailingWhitespace = (source) => source.replace(/[ \t]+$/gm, "");
 const normalizeCssLayers = (source) =>
   `@layer theme, base, components, utilities;\n${stripFontFaces(source)}`;
 
@@ -71,7 +72,7 @@ const inlineTemplate = async (widgetBuildDir, filename) => {
     },
   );
 
-  return html;
+  return stripTrailingWhitespace(html);
 };
 
 await rm(distDir, { recursive: true, force: true });
