@@ -11,7 +11,7 @@ symptoms:
 root_cause: validation_gap
 resolution_type: ci_and_storybook_fix
 severity: medium
-last_refreshed: 2026-05-14
+last_refreshed: 2026-05-19
 tags: [storybook, typescript, ci, widgets, migration, static-checks, component-build, apps-sdk-ui]
 ---
 
@@ -129,6 +129,16 @@ Story parity is also no longer represented by separate per-widget story files. S
 
 The trip component story uses controls such as `kind` and `state` to exercise default, empty, and error surfaces. When checking parity after future migrations, verify that each component kind still exposes the important state coverage even if it is not exported as a separate `Empty` story.
 
+Current implementation note after the 2026-05-19 GPT Apps runtime-template work: the default widget `build` now regenerates self-contained `app/web/runtime_templates/trip_*.html` files. Do not run that build concurrently with Python resource tests, because the build removes and recreates `runtime_templates`.
+
+Storybook also has a token/env boundary that the static checks must preserve. The Storybook config lives in `app/web/.storybook`, but repo-local `VITE_*` values such as `VITE_MAPBOX_ACCESS_TOKEN` live in the repo-root `.env`. The current config points Vite at the repo root:
+
+```ts
+envDir: resolve(storybookDir, "../../..")
+```
+
+That setting is required for the `TravelMap` Storybook story to exercise the live Mapbox branch instead of only the fallback local preview. `tsc --noEmit` still matters here: the current Mapbox pattern uses named type imports plus dynamic runtime import, which avoids editor/typecheck drift while keeping Mapbox lazy.
+
 ## Verification
 
 Run the combined local check from the widgets package:
@@ -167,6 +177,7 @@ Browser smoke checks covered representative Storybook behavior:
 - Keep Storybook widget source TypeScript-only: `.ts` for config, fixtures, helpers, and HTML Storybook stories.
 - Add a dedicated `typecheck` command whenever TypeScript is introduced to a package.
 - Add a combined `check` command for the expected local and CI validation path.
+- Preserve Storybook `envDir` when repo-root `VITE_*` values are needed for local preview paths such as Mapbox.
 - Scope CI workflows to the paths they protect so Storybook checks run on relevant PRs without slowing unrelated changes.
 - Before a JS-to-TS story migration, list old story exports and compare them after migration.
 - Preserve `Empty`, `Loading`, `Error`, `Long Content`, and interactive variants because they catch edge-state regressions that builds often miss.
@@ -180,5 +191,6 @@ Browser smoke checks covered representative Storybook behavior:
 - `docs/solutions/ui-bugs/storybook-widget-preview-v3-ui-drift-20260505.md` documents the earlier Storybook preview and v3 widget drift fix that this TypeScript/CI guard builds on.
 - `docs/solutions/ui-bugs/chatgpt-native-widget-overflow-travel-mcp-widgets-20260504.md` documents the v3 prototype UI work that later became part of the Storybook widget review surface.
 - `docs/solutions/ui-bugs/travel-storybook-app-sdk-component-review-fixes.md` documents the 2026-05-14 React Apps SDK UI component review fixes that made the component build, lazy Mapbox chunk, widget state persistence, and production audit part of the expected validation surface.
+- `docs/solutions/integration-issues/storybook-mapbox-envdir-and-travelmap-type-imports-20260519.md` documents the Storybook repo-root env loading requirement for live Mapbox preview and the `TravelMap` type-import cleanup.
 - `docs/testing_chatgpt_apps.md` is related for broader Apps SDK and widget verification.
 - `docs/chatgpt_apps_readiness_review.md` is related for pre-review quality gates.

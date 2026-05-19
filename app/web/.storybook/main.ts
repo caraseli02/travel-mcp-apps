@@ -1,5 +1,9 @@
 import type { StorybookConfig } from '@storybook/html-vite';
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
+
+const storybookDir = dirname(fileURLToPath(import.meta.url));
 
 const config: StorybookConfig = {
   stories: [
@@ -15,6 +19,7 @@ const config: StorybookConfig = {
   async viteFinal(viteConfig) {
     return {
       ...viteConfig,
+      envDir: resolve(storybookDir, "../../.."),
       plugins: [tailwindcss(), ...(viteConfig.plugins ?? [])],
     };
   },

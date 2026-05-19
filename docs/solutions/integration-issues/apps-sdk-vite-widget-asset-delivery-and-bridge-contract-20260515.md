@@ -6,6 +6,7 @@ problem_type: integration_issue
 component: apps_sdk_vite_widget_resources
 severity: high
 status: resolved
+last_refreshed: 2026-05-19
 root_cause: vite_multipage_asset_graph_not_collapsed_to_mcp_resource_contract
 resolution_type: build_pipeline_and_contract_test_hardening
 tags:
@@ -36,6 +37,8 @@ related_docs:
   - docs/solutions/integration-issues/chatgpt-apps-trip-clarification-widget-lifecycle-20260508.md
   - docs/solutions/test-failures/storybook-widget-typescript-pr-checks.md
   - docs/solutions/ui-bugs/travel-storybook-app-sdk-component-review-fixes.md
+  - docs/solutions/integration-issues/apps-sdk-map-widget-runtime-and-payload-contracts-20260519.md
+  - docs/solutions/integration-issues/storybook-mapbox-envdir-and-travelmap-type-imports-20260519.md
 ---
 
 # Troubleshooting: Apps SDK Vite Widget Asset Delivery and Bridge Contracts
@@ -305,10 +308,12 @@ Full top-level pytest collection was not used as the success gate because `test_
 - Treat `ui://` widget resources as a runtime contract, not just a build artifact. Either return self-contained HTML or explicitly host and allowlist external asset domains with `_meta.ui.csp.resourceDomains`.
 - After any bundler migration, inspect generated HTML for external scripts, stylesheets, modulepreload tags, and static imports that point outside the returned resource.
 - Keep `npm run check` as the widget validation gate: typecheck, widget build, and Storybook static build.
+- Keep widget build and Python resource tests sequenced. `app/web/scripts/build-runtime-widgets.mjs` removes and recreates `app/web/runtime_templates`, so `pytest tests/test_apps_ui_resources.py` can fail or see missing templates if it runs during the build.
 - Test bridge semantics through built widget resources. Source-level React correctness is not enough for ChatGPT Apps.
 - Preserve bridge fallbacks for interactive widgets: `tools/call` for tool calls and `ui/message` for follow-up messages. Use `window.openai` extensions as additive ChatGPT conveniences.
 - Persist meaningful interaction state with `window.openai.widgetState` / `setWidgetState`, scoped by a stable session identifier.
 - Keep resource tests narrow enough to avoid false positives from bundled runtime strings, but strict about actual emitted tags and unresolved imports.
+- Treat Storybook as a separate preview contract. If a component preview depends on repo-root `VITE_*` values such as `VITE_MAPBOX_ACCESS_TOKEN`, configure Storybook Vite with an explicit repo-root `envDir`; the hosted Apps runtime still receives safe dynamic data through tool `structuredContent`.
 
 ## Related Documentation
 
@@ -317,6 +322,8 @@ Full top-level pytest collection was not used as the success gate because `test_
 - `docs/solutions/integration-issues/chatgpt-apps-trip-clarification-widget-lifecycle-20260508.md` remains the core reference for transient widget close behavior.
 - `docs/solutions/test-failures/storybook-widget-typescript-pr-checks.md` remains the validation reference, but its command examples may need refresh because `npm run build` now runs Vite plus the inliner rather than `build:widgets && build:component`.
 - `docs/solutions/ui-bugs/travel-storybook-app-sdk-component-review-fixes.md` remains relevant for component structure, lazy dependencies, and widget state persistence.
+- `docs/solutions/integration-issues/apps-sdk-map-widget-runtime-and-payload-contracts-20260519.md` documents the later Mapbox-specific runtime contract: self-contained map widget template, Mapbox CSP, public token delivery, and mock `lat` / `lon`.
+- `docs/solutions/integration-issues/storybook-mapbox-envdir-and-travelmap-type-imports-20260519.md` documents the Storybook-side env loading fix for live Mapbox preview.
 
 ## Refresh Candidates
 

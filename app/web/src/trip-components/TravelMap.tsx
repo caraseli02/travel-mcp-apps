@@ -1,5 +1,5 @@
 import React from "react";
-import type mapboxgl from "mapbox-gl";
+import type { Map as MapboxMap, Marker as MapboxMarker } from "mapbox-gl";
 import { TripShell } from "./TripShell";
 import {
   categoryLabels,
@@ -26,8 +26,8 @@ export function TravelMap({ data }: { data: TravelOptionsData | ErrorOutput }) {
   const { sendFollowUpMessage } = useCallTool();
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mapboxRef = React.useRef<MapboxModule | null>(null);
-  const mapRef = React.useRef<mapboxgl.Map | null>(null);
-  const markerRefs = React.useRef<mapboxgl.Marker[]>([]);
+  const mapRef = React.useRef<MapboxMap | null>(null);
+  const markerRefs = React.useRef<MapboxMarker[]>([]);
   const error = isTravelError(data);
   const options = React.useMemo(
     () => (error ? [] : (data.options ?? []).filter((option) => option.coordinates)),
