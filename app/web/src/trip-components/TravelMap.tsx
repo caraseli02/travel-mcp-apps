@@ -1,5 +1,5 @@
 import React from "react";
-import type mapboxgl from "mapbox-gl";
+import type { Map as MapboxMap, Marker as MapboxMarker } from "mapbox-gl";
 import { TripShell } from "./TripShell";
 import {
   categoryLabels,
@@ -9,10 +9,11 @@ import {
   selectedOrFirst,
   uniqueValues,
 } from "./travel-shared";
+import { useCallTool } from "../bridge/useCallTool";
 import type { ErrorOutput, TravelOption, TravelOptionsData } from "./types";
 import { useWidgetState } from "./useWidgetState";
 
-const MAPBOX_ACCESS_TOKEN =
+const BUILD_MAPBOX_ACCESS_TOKEN =
   (import.meta as unknown as { env?: { VITE_MAPBOX_ACCESS_TOKEN?: string } }).env?.VITE_MAPBOX_ACCESS_TOKEN ?? "";
 
 type MapboxModule = typeof import("mapbox-gl");
@@ -22,10 +23,11 @@ export function TravelMap({ data }: { data: TravelOptionsData | ErrorOutput }) {
   const [selectedId, setSelectedId] = useWidgetState<string | null>("travel-map:selected-id", null);
   const [mapError, setMapError] = React.useState<string | null>(null);
   const [mapReady, setMapReady] = React.useState(false);
+  const { sendFollowUpMessage } = useCallTool();
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mapboxRef = React.useRef<MapboxModule | null>(null);
-  const mapRef = React.useRef<mapboxgl.Map | null>(null);
-  const markerRefs = React.useRef<mapboxgl.Marker[]>([]);
+  const mapRef = React.useRef<MapboxMap | null>(null);
+  const markerRefs = React.useRef<MapboxMarker[]>([]);
   const error = isTravelError(data);
   const options = React.useMemo(
     () => (error ? [] : (data.options ?? []).filter((option) => option.coordinates)),
@@ -40,9 +42,11 @@ export function TravelMap({ data }: { data: TravelOptionsData | ErrorOutput }) {
     () => filtered.filter((option) => option.coordinates?.lat != null && option.coordinates?.lon != null),
     [filtered],
   );
+  const mapboxAccessToken = error ? "" : data.mapbox_access_token || BUILD_MAPBOX_ACCESS_TOKEN;
+  const showFallbackMap = mapError || !mapboxAccessToken || markerOptions.length === 0;
 
   React.useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current || !MAPBOX_ACCESS_TOKEN) return;
+    if (!mapContainerRef.current || mapRef.current || !mapboxAccessToken || markerOptions.length === 0) return;
 
     let cancelled = false;
     let resize: (() => void) | null = null;
@@ -51,9 +55,9 @@ export function TravelMap({ data }: { data: TravelOptionsData | ErrorOutput }) {
       try {
         const mapboxModule = await import("mapbox-gl");
         if (cancelled || !mapContainerRef.current) return;
-        mapboxModule.default.accessToken = MAPBOX_ACCESS_TOKEN;
+        mapboxModule.default.accessToken = mapboxAccessToken;
         mapboxRef.current = mapboxModule;
-        const first = options[0]?.coordinates;
+        const first = markerOptions[0]?.coordinates;
         const map = new mapboxModule.default.Map({
           container: mapContainerRef.current,
           style: "mapbox://styles/mapbox/streets-v12",
@@ -87,7 +91,7 @@ export function TravelMap({ data }: { data: TravelOptionsData | ErrorOutput }) {
       mapboxRef.current = null;
       setMapReady(false);
     };
-  }, [options]);
+  }, [mapboxAccessToken, markerOptions]);
 
   React.useEffect(() => {
     const map = mapRef.current;
@@ -123,7 +127,7 @@ export function TravelMap({ data }: { data: TravelOptionsData | ErrorOutput }) {
 
   React.useEffect(() => {
     const map = mapRef.current;
-    if (!mapReady || !map || !selected?.coordinates?.lon || !selected.coordinates.lat) return;
+    if (!mapReady || !map || selected?.coordinates?.lon == null || selected.coordinates.lat == null) return;
     map.flyTo({
       center: [selected.coordinates.lon, selected.coordinates.lat],
       zoom: 14,
@@ -140,11 +144,17 @@ export function TravelMap({ data }: { data: TravelOptionsData | ErrorOutput }) {
     );
   }
 
+  const tripTitle = data.trip?.destination
+    ? `${data.trip.destination} planning map`
+    : data.trip?.title
+      ? `${data.trip.title} map`
+      : "Trip planning map";
+
   return (
     <TripShell
       eyebrow="Map"
-      title="Amsterdam planning map"
-      description="Use geography to understand tradeoffs between stays, food, activities, and transit."
+      title={tripTitle}
+      description="Use mapped pins to understand tradeoffs between stays, food, activities, and transit."
       empty={options.length === 0}
       emptyTitle="No mapped places"
     >
@@ -154,20 +164,30 @@ export function TravelMap({ data }: { data: TravelOptionsData | ErrorOutput }) {
         </div>
         <div className="grid gap-0 md:grid-cols-[minmax(0,1fr)_300px]">
           <div className="relative min-h-[420px] overflow-hidden bg-[#e6f0ec]">
-            {mapError || !MAPBOX_ACCESS_TOKEN ? (
+            {showFallbackMap ? (
               <FallbackTravelMap options={filtered} selectedId={selected?.id ?? null} onSelect={setSelectedId} />
             ) : null}
             <div
               ref={mapContainerRef}
-              className={`absolute inset-0 ${mapError || !MAPBOX_ACCESS_TOKEN ? "opacity-0" : "opacity-100"}`}
+              className={`absolute inset-0 ${showFallbackMap ? "opacity-0" : "opacity-100"}`}
               style={{ position: "absolute", inset: 0 }}
             />
             <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-secondary shadow-sm">
-              {mapError || !MAPBOX_ACCESS_TOKEN ? "Local map preview" : "Live Mapbox preview"}
+              {showFallbackMap ? "Local map preview" : "Live Mapbox preview"}
             </div>
           </div>
           <div className="border-t border-[var(--color-border)] p-4 md:border-l md:border-t-0">
-            <OptionDetail option={selected} action="Focus route" secondaryAction="Add stop" />
+            <OptionDetail
+              option={selected}
+              action="Focus route"
+              secondaryAction="Add stop"
+              onAction={() => {
+                if (selected) sendFollowUpMessage(`Focus route around ${selected.title}.`);
+              }}
+              onSecondaryAction={() => {
+                if (selected) sendFollowUpMessage(`Add ${selected.title} as a stop.`);
+              }}
+            />
             <div className="mt-3 grid gap-2">
               {filtered.map((option) => (
                 <button

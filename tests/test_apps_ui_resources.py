@@ -8,8 +8,13 @@ from app.server.travel_agent.mcp import (
     trip_board_ui,
     trip_budget_ui,
     trip_clarification_ui,
+    trip_album_ui,
     trip_inbox_ui,
     trip_itinerary_ui,
+    trip_cart_ui,
+    trip_comparison_ui,
+    trip_map_ui,
+    trip_options_list_ui,
 )
 from app.server.travel_tips.mcp import (
     travel_activity_cards_ui,
@@ -25,6 +30,11 @@ DIST_WIDGETS = [
     "trip_itinerary_v3.html",
     "trip_budget_v3.html",
     "trip_clarification_v1.html",
+    "trip_options_list_v1.html",
+    "trip_comparison_v1.html",
+    "trip_map_v1.html",
+    "trip_album_v1.html",
+    "trip_cart_v1.html",
 ]
 
 LEGACY_WIDGETS: list[tuple[str, Callable[[], str], str]] = [
@@ -41,6 +51,11 @@ VITE_WIDGETS: list[tuple[str, Callable[[], str]]] = [
     ("ui://trip/itinerary-v3.html", trip_itinerary_ui),
     ("ui://trip/budget-v3.html", trip_budget_ui),
     ("ui://trip/clarification-v1.html", trip_clarification_ui),
+    ("ui://trip/options-list-v1.html", trip_options_list_ui),
+    ("ui://trip/comparison-v1.html", trip_comparison_ui),
+    ("ui://trip/map-v1.html", trip_map_ui),
+    ("ui://trip/album-v1.html", trip_album_ui),
+    ("ui://trip/cart-v1.html", trip_cart_ui),
 ]
 
 def test_built_trip_widgets_exist_and_have_injections() -> None:
@@ -114,6 +129,14 @@ def test_vite_apps_ui_resources_include_bridge_update_handlers() -> None:
         assert "toolOutput" in html
         assert "openai:set_globals" in html
         assert "ui/notifications/tool-result" in html
+
+
+def test_trip_map_resource_declares_mapbox_csp() -> None:
+    from app.server.travel_agent import mcp as travel_agent_server
+
+    assert "https://api.mapbox.com" in travel_agent_server.MAPBOX_CSP["connectDomains"]
+    assert "https://events.mapbox.com" in travel_agent_server.MAPBOX_CSP["connectDomains"]
+    assert "https://api.mapbox.com" in travel_agent_server.MAPBOX_CSP["resourceDomains"]
 
 
 def test_trip_clarification_resource_includes_submit_and_close_bridge() -> None:

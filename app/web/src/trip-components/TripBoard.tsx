@@ -1,6 +1,4 @@
 import React from "react";
-import { Badge } from "@openai/apps-sdk-ui/components/Badge";
-import { Button } from "@openai/apps-sdk-ui/components/Button";
 import { Alert } from "@openai/apps-sdk-ui/components/Alert";
 import { compact, titleize } from "./format";
 import { TripShell } from "./TripShell";
@@ -87,34 +85,45 @@ export function TripBoard({ board }: { board: TripBoardData | ErrorOutput }) {
             <h2 className="heading-md mt-1 text-primary">Planning state</h2>
           </div>
           <div className="flex items-center gap-3">
-            <Badge color={percent >= 50 ? "success" : "warning"} pill>
+            <span
+              className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                percent >= 50
+                  ? "bg-[var(--color-background-success-soft-alpha)] text-[var(--color-text-success-soft)]"
+                  : "bg-[var(--color-background-warning-soft-alpha)] text-[var(--color-text-warning-soft)]"
+              }`}
+            >
               {percent}% committed
-            </Badge>
-            <Button color="secondary" variant="soft" size="sm">
+            </span>
+            <button
+              type="button"
+              className="rounded-lg bg-secondary px-3 py-1.5 text-sm font-medium text-primary transition hover:bg-tertiary"
+            >
               Review gaps
-            </Button>
+            </button>
           </div>
         </div>
 
         <div className="flex gap-2 overflow-x-auto border-b border-subtle p-3">
-          <Button
-            color="secondary"
-            variant={activeLane === null ? "solid" : "soft"}
-            size="sm"
+          <button
+            type="button"
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+              activeLane === null ? "bg-primary-inverse text-primary-inverse" : "bg-secondary text-primary hover:bg-tertiary"
+            }`}
             onClick={() => setActiveLane(null)}
           >
             All lanes
-          </Button>
+          </button>
           {laneKeys.map((lane) => (
-            <Button
+            <button
+              type="button"
               key={lane}
-              color="secondary"
-              variant={activeLane === lane ? "solid" : "soft"}
-              size="sm"
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                activeLane === lane ? "bg-primary-inverse text-primary-inverse" : "bg-secondary text-primary hover:bg-tertiary"
+              }`}
               onClick={() => setActiveLane(lane)}
             >
               {laneLabels[lane] ?? titleize(lane)}
-            </Button>
+            </button>
           ))}
         </div>
 
@@ -127,9 +136,9 @@ export function TripBoard({ board }: { board: TripBoardData | ErrorOutput }) {
                   <h3 className="text-sm font-semibold text-primary">
                     {laneLabels[lane] ?? titleize(lane)}
                   </h3>
-                  <Badge color="secondary" variant="soft" pill>
+                  <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-semibold text-secondary">
                     {items.length}
-                  </Badge>
+                  </span>
                 </div>
 
                 {items.length === 0 ? (

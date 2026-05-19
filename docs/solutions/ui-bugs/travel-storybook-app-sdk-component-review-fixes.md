@@ -6,6 +6,7 @@ problem_type: ui_bug
 component: storybook_travel_apps_sdk_ui_components
 severity: medium
 status: resolved
+last_refreshed: 2026-05-19
 root_cause: review_found_component_structure_and_widget_lifecycle_gaps
 resolution_type: refactor_and_hardening
 review_target:
@@ -42,6 +43,8 @@ related_docs:
   - docs/solutions/test-failures/storybook-widget-typescript-pr-checks.md
   - docs/solutions/integration-issues/apps-sdk-clarification-widget-state-and-schema-contract-20260511.md
   - docs/solutions/integration-issues/apps-sdk-fastmcp-structural-refactor-deployment-hardening-20260512.md
+  - docs/solutions/integration-issues/apps-sdk-map-widget-runtime-and-payload-contracts-20260519.md
+  - docs/solutions/integration-issues/storybook-mapbox-envdir-and-travelmap-type-imports-20260519.md
 related_todos:
   - todos/023-complete-p2-fix-trip-component-hook-order.md
   - todos/024-complete-p2-split-mapbox-from-shared-widget-bundle.md
@@ -162,7 +165,7 @@ const mapboxRef = React.useRef<MapboxModule | null>(null);
 const [mapReady, setMapReady] = React.useState(false);
 
 React.useEffect(() => {
-  if (!mapContainerRef.current || mapRef.current || !MAPBOX_ACCESS_TOKEN) return;
+  if (!mapContainerRef.current || mapRef.current || !mapboxAccessToken || markerOptions.length === 0) return;
 
   let cancelled = false;
   let resize: (() => void) | null = null;
@@ -172,7 +175,7 @@ React.useEffect(() => {
       const mapboxModule = await import("mapbox-gl");
       if (cancelled || !mapContainerRef.current) return;
 
-      mapboxModule.default.accessToken = MAPBOX_ACCESS_TOKEN;
+      mapboxModule.default.accessToken = mapboxAccessToken;
       mapboxRef.current = mapboxModule;
 
       const map = new mapboxModule.default.Map({
@@ -206,6 +209,21 @@ React.useEffect(() => {
   };
 }, [options]);
 ```
+
+Current implementation note after the 2026-05-19 Apps SDK runtime work: lazy Mapbox remains the correct component-layer pattern, but `TravelMap` now prefers a runtime token from tool data before falling back to the build-time Storybook token:
+
+```tsx
+const mapboxAccessToken = error ? "" : data.mapbox_access_token || BUILD_MAPBOX_ACCESS_TOKEN;
+const showFallbackMap = mapError || !mapboxAccessToken || markerOptions.length === 0;
+```
+
+Storybook also needs to load the repo-root `.env` because the Storybook config lives under `app/web/.storybook` while `VITE_MAPBOX_ACCESS_TOKEN` is configured at the repo root:
+
+```ts
+envDir: resolve(storybookDir, "../../..")
+```
+
+Do not confuse this component-layer lazy-loading guidance with the generated ChatGPT Apps runtime template. `trip_map_v1.html` may intentionally inline/bundle Mapbox so the MCP resource remains self-contained for GPT Apps testing. That exception is documented in [apps-sdk-map-widget-runtime-and-payload-contracts-20260519.md](../integration-issues/apps-sdk-map-widget-runtime-and-payload-contracts-20260519.md).
 
 The marker effect waits for explicit readiness. This matters because refs do not trigger React effects when the async Mapbox import resolves.
 
@@ -451,6 +469,8 @@ npm outdated @openai/apps-sdk-ui storybook vite vitest react react-dom
 - [Storybook widget TypeScript PR checks](../test-failures/storybook-widget-typescript-pr-checks.md) covers Storybook and TypeScript validation expectations.
 - [Apps SDK clarification widget state and schema contract](../integration-issues/apps-sdk-clarification-widget-state-and-schema-contract-20260511.md) documents the original `widgetState` replay issue that this fix generalizes.
 - [Apps SDK FastMCP structural refactor deployment hardening](../integration-issues/apps-sdk-fastmcp-structural-refactor-deployment-hardening-20260512.md) covers `app/web`, source/dist parity, widget packaging, and build/deploy hardening.
+- [Apps SDK map widget runtime and payload contracts](../integration-issues/apps-sdk-map-widget-runtime-and-payload-contracts-20260519.md) documents the later hosted GPT Apps Mapbox contract: resource CSP, public runtime token delivery, and mock `lat` / `lon` pins.
+- [Storybook Mapbox env loading and TravelMap type imports](../integration-issues/storybook-mapbox-envdir-and-travelmap-type-imports-20260519.md) documents the Storybook-specific repo-root env loading fix for live Mapbox preview.
 
 ## Refresh Candidates
 

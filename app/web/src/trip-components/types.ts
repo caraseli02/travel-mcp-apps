@@ -167,6 +167,7 @@ export interface TravelOptionsData {
   trip?: Trip;
   options?: TravelOption[];
   media?: TravelMediaItem[];
+  mapbox_access_token?: string;
 }
 
 export interface TravelCartItem {
