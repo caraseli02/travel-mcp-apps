@@ -1,6 +1,7 @@
 from pathlib import Path
 import json
 import os
+import re
 import sys
 from typing import Any, Callable
 
@@ -198,6 +199,11 @@ TOOL_OUTPUT_SCHEMAS: dict[str, dict[str, Any]] = {
     "render_trip_board": OBJECT_SCHEMA,
     "get_trip_itinerary": OBJECT_SCHEMA,
     "get_trip_budget": OBJECT_SCHEMA,
+    "render_trip_options": OBJECT_SCHEMA,
+    "render_trip_comparison": OBJECT_SCHEMA,
+    "render_trip_map": OBJECT_SCHEMA,
+    "render_trip_album": OBJECT_SCHEMA,
+    "render_trip_cart": OBJECT_SCHEMA,
     "get_trip_summary": _output_schema(
         {
             "trip": TRIP_SCHEMA,
@@ -221,6 +227,101 @@ TOOL_OUTPUT_SCHEMAS: dict[str, dict[str, Any]] = {
         }
     ),
 }
+
+
+TRAVEL_OPTION_CATEGORIES = {
+    "hotel": "lodging",
+    "lodging": "lodging",
+    "restaurant": "food",
+    "food": "food",
+    "activity": "activity",
+    "museum": "activity",
+    "transit": "transit",
+    "train": "transit",
+    "flight": "flight",
+    "neighborhood": "neighborhood",
+    "area": "neighborhood",
+}
+
+
+def _trip_options_payload(trip: Any, items: list[Any]) -> dict[str, Any]:
+    trip_dict = trip_to_dict(trip)
+    options = []
+    for index, item in enumerate(items):
+        data = item_to_dict(item)
+        raw = data.get("raw_content") or ""
+        item_type = (data.get("item_type") or "").lower()
+        category = TRAVEL_OPTION_CATEGORIES.get(item_type, "activity")
+        status = data.get("status") if data.get("status") in {"inbox", "shortlisted", "booked"} else "open"
+        title = data.get("title") or raw[:80] or "Saved trip option"
+        location = data.get("location_note") or data.get("notes") or trip_dict.get("destination") or "Trip area"
+        price_text = data.get("price_note") or raw
+        price_match = re.search(r"(?:€|EUR|\\$|USD)?\\s*(\\d+(?:\\.\\d{1,2})?)", price_text)
+        price = float(price_match.group(1)) if price_match else None
+        options.append(
+            {
+                "id": data.get("id") or f"option-{index}",
+                "category": category,
+                "status": status,
+                "title": title,
+                "subtitle": data.get("source_label") or location,
+                "description": raw or data.get("notes") or title,
+                "neighborhood": location,
+                "schedule_label": data.get("day_label"),
+                "price": price,
+                "currency": "EUR" if "€" in price_text or "EUR" in price_text.upper() else "USD",
+                "price_note": data.get("price_note"),
+                "source": data.get("source_label"),
+                "score": max(72, 94 - index * 3),
+                "recommended": index == 0,
+                "coordinates": {
+                    "x": 18 + (index * 17) % 64,
+                    "y": 22 + (index * 23) % 58,
+                },
+                "pros": ["Saved in trip workspace", "Ready to compare"],
+                "cons": ["Needs confirmation"],
+            }
+        )
+
+    media = [
+        {
+            "id": f"media-{option['id']}",
+            "category": option["category"],
+            "title": option["title"],
+            "subtitle": option["subtitle"],
+            "description": option["description"],
+            "location": option.get("neighborhood") or trip_dict.get("destination") or "Trip area",
+            "image_url": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'%3E%3Crect width='800' height='600' fill='%23dbeafe'/%3E%3Cpath d='M0 430 220 250l160 120 130-90 290 210v110H0z' fill='%2393c5fd'/%3E%3Ccircle cx='610' cy='145' r='70' fill='%23fef3c7'/%3E%3C/svg%3E",
+            "gradient": "from-sky-200 via-white to-emerald-200",
+        }
+        for option in options[:8]
+    ]
+
+    return {"trip": trip_dict, "options": options, "media": media}
+
+
+def _trip_cart_payload(trip: Any, items: list[Any]) -> dict[str, Any]:
+    options = _trip_options_payload(trip, items)["options"]
+    selected = [option for option in options if option["status"] in {"shortlisted", "booked"}] or options[:3]
+    return {
+        "trip": trip_to_dict(trip),
+        "currency": "EUR",
+        "items": [
+            {
+                "id": option["id"],
+                "category": option["category"],
+                "title": option["title"],
+                "subtitle": option["subtitle"],
+                "price": option.get("price") or 0,
+                "quantity": 1,
+                "ready": option["status"] == "booked",
+                "warning": "Confirm before booking" if option["status"] != "booked" else None,
+            }
+            for option in selected
+        ],
+        "readiness": ["Trip items collected", "Review remaining gaps before booking"],
+        "warnings": ["This is a planning cart, not a checkout."],
+    }
 
 
 def _register_output_schemas() -> None:
@@ -488,6 +589,81 @@ def get_trip_budget(trip_id: str) -> CallToolResult:
         )
 
     return _run_trip_tool(action)
+
+
+def _render_trip_options_widget(
+    trip_id: str,
+    resource_uri: str,
+    content_label: str,
+    cart: bool = False,
+) -> CallToolResult:
+    def action() -> CallToolResult:
+        store = get_trip_store()
+        trip = store.get_trip(trip_id)
+        items = store.list_items(trip_id)
+        payload = _trip_cart_payload(trip, items) if cart else _trip_options_payload(trip, items)
+        return CallToolResult(
+            structuredContent=payload,
+            content=_text(f"Rendered {content_label} for {trip.title}."),
+            _meta={},
+        )
+
+    return _run_trip_tool(action)
+
+
+@server.tool(
+    name="render_trip_options",
+    title="Render trip options",
+    description="Use this when the user asks to see saved hotels, restaurants, flights, activities, or trip places as a visual options list.",
+    annotations=READ_ONLY,
+    meta=_render_meta("ui://trip/options-list-v1.html", "Rendering trip options", "Rendered trip options"),
+)
+def render_trip_options(trip_id: str) -> CallToolResult:
+    return _render_trip_options_widget(trip_id, "ui://trip/options-list-v1.html", "trip options")
+
+
+@server.tool(
+    name="render_trip_comparison",
+    title="Render trip comparison",
+    description="Use this when the user asks to compare saved trip options visually.",
+    annotations=READ_ONLY,
+    meta=_render_meta("ui://trip/comparison-v1.html", "Rendering trip comparison", "Rendered trip comparison"),
+)
+def render_trip_comparison(trip_id: str) -> CallToolResult:
+    return _render_trip_options_widget(trip_id, "ui://trip/comparison-v1.html", "trip comparison")
+
+
+@server.tool(
+    name="render_trip_map",
+    title="Render trip map",
+    description="Use this when the user asks for a map, pins, places, or geographic view of saved trip items. Renders saved places as map pins when precise coordinates are unavailable.",
+    annotations=READ_ONLY,
+    meta=_render_meta("ui://trip/map-v1.html", "Rendering trip map", "Rendered trip map"),
+)
+def render_trip_map(trip_id: str) -> CallToolResult:
+    return _render_trip_options_widget(trip_id, "ui://trip/map-v1.html", "trip map")
+
+
+@server.tool(
+    name="render_trip_album",
+    title="Render trip album",
+    description="Use this when the user asks for a visual album or inspiration view of saved trip places.",
+    annotations=READ_ONLY,
+    meta=_render_meta("ui://trip/album-v1.html", "Rendering trip album", "Rendered trip album"),
+)
+def render_trip_album(trip_id: str) -> CallToolResult:
+    return _render_trip_options_widget(trip_id, "ui://trip/album-v1.html", "trip album")
+
+
+@server.tool(
+    name="render_trip_cart",
+    title="Render trip cart",
+    description="Use this when the user asks to package selected trip options or review a cart-like planning checklist before booking.",
+    annotations=READ_ONLY,
+    meta=_render_meta("ui://trip/cart-v1.html", "Rendering trip cart", "Rendered trip cart"),
+)
+def render_trip_cart(trip_id: str) -> CallToolResult:
+    return _render_trip_options_widget(trip_id, "ui://trip/cart-v1.html", "trip cart", cart=True)
 
 
 @server.tool(
@@ -845,6 +1021,76 @@ def trip_budget_ui() -> str:
 )
 def trip_clarification_ui() -> str:
     return _read_widget_html("trip_clarification_v1.html")
+
+
+@server.resource(
+    "ui://trip/options-list-v1.html",
+    name="Trip Options UI",
+    description="Visual saved trip options list.",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {"prefersBorder": True, "csp": {"connectDomains": [], "resourceDomains": []}},
+        "openai/widgetDescription": "Shows saved trip options as a filterable visual list.",
+    },
+)
+def trip_options_list_ui() -> str:
+    return _read_widget_html("trip_options_list_v1.html")
+
+
+@server.resource(
+    "ui://trip/comparison-v1.html",
+    name="Trip Comparison UI",
+    description="Visual saved trip option comparison carousel.",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {"prefersBorder": True, "csp": {"connectDomains": [], "resourceDomains": []}},
+        "openai/widgetDescription": "Compares saved trip options in a carousel.",
+    },
+)
+def trip_comparison_ui() -> str:
+    return _read_widget_html("trip_comparison_v1.html")
+
+
+@server.resource(
+    "ui://trip/map-v1.html",
+    name="Trip Map UI",
+    description="Visual saved trip places map.",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {"prefersBorder": True, "csp": {"connectDomains": [], "resourceDomains": []}},
+        "openai/widgetDescription": "Shows saved trip places as map pins.",
+    },
+)
+def trip_map_ui() -> str:
+    return _read_widget_html("trip_map_v1.html")
+
+
+@server.resource(
+    "ui://trip/album-v1.html",
+    name="Trip Album UI",
+    description="Visual saved trip inspiration album.",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {"prefersBorder": True, "csp": {"connectDomains": [], "resourceDomains": []}},
+        "openai/widgetDescription": "Shows saved trip places as an inspiration album.",
+    },
+)
+def trip_album_ui() -> str:
+    return _read_widget_html("trip_album_v1.html")
+
+
+@server.resource(
+    "ui://trip/cart-v1.html",
+    name="Trip Cart UI",
+    description="Cart-like trip planning package.",
+    mime_type="text/html;profile=mcp-app",
+    meta={
+        "ui": {"prefersBorder": True, "csp": {"connectDomains": [], "resourceDomains": []}},
+        "openai/widgetDescription": "Shows selected trip options in a cart-like planning review.",
+    },
+)
+def trip_cart_ui() -> str:
+    return _read_widget_html("trip_cart_v1.html")
 
 
 _register_output_schemas()

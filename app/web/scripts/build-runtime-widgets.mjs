@@ -14,6 +14,11 @@ const widgets = [
   "trip_board_v3.html",
   "trip_budget_v3.html",
   "trip_clarification_v1.html",
+  "trip_options_list_v1.html",
+  "trip_comparison_v1.html",
+  "trip_map_v1.html",
+  "trip_album_v1.html",
+  "trip_cart_v1.html",
   "trip_inbox_v2.html",
   "trip_itinerary_v3.html",
 ];
@@ -23,6 +28,8 @@ const escapeStyle = (source) => source.replaceAll("</style", "<\\/style");
 const stripSourceMapComment = (source) =>
   source.replace(/\n?\/\/# sourceMappingURL=.*$/gm, "");
 const stripFontFaces = (source) => source.replace(/@font-face\s*\{[^{}]*\}/g, "");
+const normalizeCssLayers = (source) =>
+  `@layer theme, base, components, utilities;\n${stripFontFaces(source)}`;
 
 const readBuiltAsset = async (widgetBuildDir, assetPath) => {
   const relativePath = assetPath.replace(/^\//, "");
@@ -50,7 +57,7 @@ const inlineTemplate = async (widgetBuildDir, filename) => {
     html,
     /\s*<link rel="stylesheet" crossorigin href="([^"]+)">/g,
     async (_match, href) => {
-      const css = stripFontFaces(await readBuiltAsset(widgetBuildDir, href));
+      const css = normalizeCssLayers(await readBuiltAsset(widgetBuildDir, href));
       return `\n    <style>${escapeStyle(css)}</style>`;
     },
   );
